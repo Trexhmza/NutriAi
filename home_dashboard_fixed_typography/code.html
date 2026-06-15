@@ -199,6 +199,7 @@
         <div class="mt-4">
           <p id="gaugeRemaining" class="text-h1 font-display-lg text-on-surface">--</p>
           <p class="text-sm text-on-surface-variant">kcal remaining today</p>
+          <p id="gaugeSignInHint" class="hidden text-[11px] text-on-surface-variant/60 mt-2">Sign in to track your calories</p>
         </div>
         <div class="mt-4 w-full bg-surface-container-highest rounded-full h-2 overflow-hidden">
           <div id="gaugeBar" class="h-full bg-gradient-to-r from-primary-container to-primary rounded-full" style="width: 0%"></div>
@@ -257,10 +258,7 @@
       const user = await NutriDB.getUser().catch(() => null);
 
       if (!user) {
-        renderDashboard({ goalCalories: 2500 }, [
-          { calories: 520 },
-          { calories: 380 },
-        ]);
+        renderDashboard(null, []);
         return;
       }
 
@@ -286,11 +284,13 @@
         document.getElementById('gaugeGoalLabel').textContent = `${goalCals.toLocaleString()} kcal goal`;
         document.getElementById('gaugeGoalDisplay').textContent = goalCals.toLocaleString();
         document.getElementById('gaugeBar').style.width = `${pct}%`;
+        document.getElementById('gaugeSignInHint').classList.add('hidden');
       } else {
         document.getElementById('gaugeRemaining').textContent = '--';
         document.getElementById('gaugeGoalLabel').textContent = '-- kcal goal';
         document.getElementById('gaugeGoalDisplay').textContent = '--';
         document.getElementById('gaugeBar').style.width = '0%';
+        document.getElementById('gaugeSignInHint').classList.remove('hidden');
       }
     }
 
@@ -310,21 +310,13 @@
         if (goals) goalCals = goals.goalCalories || 2000;
         weekDays = await NutriDB.getWeekMeals().catch(() => []);
       } else {
-        const now = new Date();
-        const mon = new Date(now);
-        mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-        goalCals = 2500;
+        const mon = new Date();
+        mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
         weekDays = [];
         for (let i = 0; i < 7; i++) {
           const d = new Date(mon);
           d.setDate(mon.getDate() + i);
-          const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-          const isPast = d <= now;
-          const dow = d.getDay();
-          // Mock: Mon(1800) in-progress, Wed(2600) achieved, Fri(2400) achieved, today achieved, rest missed
-          const mockCals = { 1: 1800, 3: 2600, 5: 2400, [now.getDay()]: 2550 };
-          const hasMeals = isPast && mockCals[dow] !== undefined;
-          weekDays.push({ date: dateStr, dayOfWeek: dow, mealCount: hasMeals ? 2 : 0, totalCalories: hasMeals ? mockCals[dow] : 0, hasMeals });
+          weekDays.push({ date: '', dayOfWeek: d.getDay(), mealCount: 0, totalCalories: 0, hasMeals: false });
         }
       }
 
@@ -335,6 +327,7 @@
       if (!hasAny) {
         canvas.classList.add('hidden');
         empty.classList.remove('hidden');
+        empty.textContent = user ? 'Log at least one meal this week to see your progress.' : 'Sign in to see your weekly progress.';
         if (_calorieChart) { _calorieChart.destroy(); _calorieChart = null; }
         return;
       }
