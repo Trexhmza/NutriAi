@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>NutriAI - Smart Calorie Tracker</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase/db.js"></script>
+    <script src="agent/agent.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            backdrop-filter: blur(16px);
+            background: rgba(23, 31, 51, 0.7);
+        }
+        .coral-glow {
+            box-shadow: 0 0 40px rgba(255, 127, 80, 0.15);
+        }
+        .mint-glow {
+            box-shadow: 0 0 40px rgba(68, 226, 205, 0.15);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b1326;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3449;
+            border-radius: 10px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "surface": "#0b1326",
+                "surface-container-lowest": "#060e20",
+                "surface-container-low": "#131b2e",
+                "surface-container": "#171f33",
+                "surface-container-high": "#222a3d",
+                "surface-container-highest": "#2d3449",
+                "background": "#0b1326",
+                "primary": "#ffb59c",
+                "primary-container": "#ff7f50",
+                "on-primary-fixed": "#380c00",
+                "secondary": "#44e2cd",
+                "secondary-container": "#03c6b2",
+                "on-secondary-container": "#004d44",
+                "tertiary": "#c0c1ff",
+                "on-surface": "#dae2fd",
+                "on-surface-variant": "#dec0b6",
+                "outline-variant": "#57423b",
+                "error": "#ffb4ab"
+              },
+              borderRadius: {
+                "DEFAULT": "0.25rem",
+                "lg": "0.375rem",
+                "xl": "0.75rem",
+                "2xl": "1rem",
+                "full": "9999px"
+              },
+              fontFamily: {
+                "display-lg": ["Space Grotesk"],
+                "body-md": ["Inter"]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-x-hidden flex flex-col min-h-screen">
+
+    <!-- Sticky Header -->
+    <header class="fixed top-0 left-0 right-0 h-20 bg-primary/20 backdrop-blur-md border-b border-outline-variant/20 z-50">
+      <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+        <!-- Logo -->
+        <a href="index.html" class="flex items-center gap-2 group">
+          <span class="material-symbols-outlined text-primary-container text-3xl group-hover:scale-110 transition-transform" data-icon="insights">insights</span>
+          <span class="text-2xl font-bold font-display-lg tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent">NutriAI</span>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden md:flex items-center gap-8">
+          <a href="index.html" class="text-sm font-semibold text-primary-container border-b-2 border-primary-container py-2">Home</a>
+          <a href="home_dashboard_fixed_typography/code.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Dashboard</a>
+          <a href="log_meal_futuristic_typography/code.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Log Meal</a>
+          <a href="bmi_calculator_futuristic_typography/code.html" class="text-sm font-medium hover:text-primary transition-colors py-2">BMI Calculator</a>
+          <a href="contact/index.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Contact</a>
+          <a href="home_dashboard_fixed_typography/code.html#agentPanel" class="text-sm font-medium hover:text-primary transition-colors py-2 flex items-center gap-1">
+            <span class="material-symbols-outlined text-base">psychology</span> Agent
+          </a>
+        </nav>
+
+        <!-- Right-Side Auth & Mobile Toggle -->
+        <div class="flex items-center gap-4">
+          <button onclick="openAuthModal()" id="signInBtn" class="bg-primary-container/20 border border-primary-container/50 hover:bg-primary-container hover:text-on-primary-fixed text-primary-container px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-primary-container/20">
+            Sign In
+          </button>
+          <!-- User profile menu (initially hidden) -->
+          <div id="userMenu" class="hidden relative group">
+            <button class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container">
+              <img id="userAvatar" alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0YmPVPiochboDphA_4TfEDAJNpnAQ9XjyPi8AMdML942mSGGd6rp_b4oRhkt73B1qQFyBv4F728gvJ8hl4WeVoRv_vmGeszKrlmm-bjW2_ke8AWPHofb1rgp4ZoKWiOtQpfY3XkUbIDOFgQ3rombxdyrZB6k1tcWNIfzhPztU5tKLUkoFeFmW4FhDQVjIXSBEsr__kgQbilxE7Cn25nFmKKcV7bHTEHZSui-JpwBJel84C6i6tjQHCnb8-lbltrbCUIUGCmyexIwr"/>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden group-hover:block hover:block z-50">
+              <p id="userEmailDisplay" class="text-[11px] text-on-surface-variant px-3 py-1 truncate">user@example.com</p>
+              <hr class="border-outline-variant/30 my-1"/>
+              <button onclick="signOutUser()" class="w-full text-left text-xs hover:bg-surface-container hover:text-error px-3 py-2 rounded-lg transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">logout</span> Sign Out
+              </button>
+            </div>
+          </div>
+
+          <!-- Hamburger Menu Button -->
+          <button onclick="toggleMobileMenu()" class="md:hidden text-on-surface hover:text-primary transition-colors">
+            <span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Navigation -->
+      <div id="mobileMenu" class="hidden md:hidden absolute top-20 left-0 right-0 bg-surface border-b border-outline-variant/50 flex flex-col p-6 space-y-4 shadow-xl z-40 animate-fade-in">
+        <a href="index.html" class="text-lg font-semibold text-primary-container py-2 border-l-4 border-primary-container pl-3">Home</a>
+        <a href="home_dashboard_fixed_typography/code.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Dashboard</a>
+        <a href="log_meal_futuristic_typography/code.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Log Meal</a>
+        <a href="bmi_calculator_futuristic_typography/code.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">BMI Calculator</a>
+        <a href="contact/index.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Contact</a>
+        <a href="home_dashboard_fixed_typography/code.html#agentPanel" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3 flex items-center gap-2">🤖 Agent</a>
+      </div>
+    </header>
+
+    <!-- Supabase Auth Modal -->
+    <div id="authModal" class="fixed inset-0 bg-background/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+      <div class="bg-surface-container border border-outline-variant w-full max-w-md rounded-2xl p-8 relative shadow-2xl coral-glow">
+        <!-- Close Button -->
+        <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        
+        <!-- Modal Content -->
+        <div class="text-center mb-6">
+          <h2 class="text-2xl font-bold font-display-lg text-on-surface mb-2">Welcome to NutriAI</h2>
+          <p class="text-sm text-on-surface-variant">Sign in or create an account with Supabase Auth</p>
+        </div>
+
+        <!-- Auth Tabs -->
+        <div class="flex border-b border-outline-variant/30 mb-6">
+          <button id="tabSignIn" onclick="switchAuthTab('signin')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all">Sign In</button>
+          <button id="tabSignUp" onclick="switchAuthTab('signup')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all">Sign Up</button>
+        </div>
+
+        <!-- Auth Form -->
+        <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Email Address</label>
+            <input type="email" id="authEmail" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="name@domain.com">
+          </div>
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Password</label>
+            <input type="password" id="authPassword" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="••••••••">
+          </div>
+          <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-primary-container text-on-primary-fixed hover:brightness-115 text-sm font-semibold rounded-lg transition-all duration-300">
+            Sign In
+          </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="flex items-center my-6">
+          <div class="flex-1 border-t border-outline-variant/30"></div>
+          <span class="px-3 text-[10px] font-mono uppercase text-on-surface-variant/60">Or Continue With</span>
+          <div class="flex-1 border-t border-outline-variant/30"></div>
+        </div>
+
+        <!-- Social Sign In -->
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="signInWithSocial('google')" class="flex items-center justify-center gap-2 py-2.5 bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+            <svg class="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Google
+          </button>
+          <button onclick="signInWithSocial('github')" class="flex items-center justify-center gap-2 py-2.5 bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+            <svg class="w-4 h-4 fill-on-surface" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            GitHub
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 pt-32 pb-16 px-6">
+        <!-- Hero Section -->
+        <section class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-24">
+            <div class="lg:col-span-7 space-y-6 animate-fade-in">
+                <span class="text-xs font-bold uppercase tracking-widest text-primary bg-primary-container/10 px-3 py-1.5 rounded-full border border-primary-container/30">Simple Calorie Tracking</span>
+                <h1 class="text-5xl lg:text-6xl font-extrabold font-display-lg tracking-tight leading-tight text-on-surface">
+                    Track Your <span class="bg-gradient-to-r from-primary-container to-primary bg-clip-text text-transparent">Calories</span>. Reach Your Goals.
+                </h1>
+                <p class="text-lg text-on-surface-variant max-w-xl">
+                    Log meals, see your daily progress, and get AI-powered analysis — all in one place. No macros, no complexity. Just the one number that matters.
+                </p>
+                <div class="flex flex-wrap gap-4 pt-4">
+                    <a href="home_dashboard_fixed_typography/code.html" class="px-8 py-4 bg-primary-container text-on-primary-fixed hover:brightness-110 font-semibold rounded-full shadow-lg coral-glow transition-all duration-300 transform hover:-translate-y-0.5">
+                        Open Dashboard
+                    </a>
+                    <a href="log_meal_futuristic_typography/code.html" class="px-8 py-4 bg-surface-container border border-outline-variant hover:bg-surface-container-high font-semibold rounded-full transition-all duration-300 transform hover:-translate-y-0.5">
+                        Log a Meal
+                    </a>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 glass-panel border border-outline-variant p-8 rounded-2xl coral-glow space-y-6 relative overflow-hidden animate-fade-in">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-primary opacity-5 blur-3xl rounded-full"></div>
+                <div class="flex items-center gap-3 pb-4 border-b border-outline-variant/30">
+                    <span class="material-symbols-outlined text-primary-container text-3xl">local_fire_department</span>
+                    <div>
+                        <p class="text-xs text-on-surface-variant uppercase font-mono">Energy Balance</p>
+                        <p class="text-2xl font-bold font-display-lg">1,840 <span class="text-sm font-normal text-on-surface-variant">kcal remaining</span></p>
+                    </div>
+                </div>
+                <div class="space-y-3 text-sm text-on-surface-variant">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-primary-container text-lg">restaurant</span>
+                        <span>Log meals with one number — calories</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-secondary text-lg">bar_chart</span>
+                        <span>See your 7-day calorie trend</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-tertiary text-lg">psychology</span>
+                        <span>Get AI-powered analysis of your intake</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Cards -->
+        <section class="max-w-7xl mx-auto space-y-12">
+            <div class="text-center max-w-2xl mx-auto space-y-4">
+                <h2 class="text-3xl lg:text-4xl font-bold font-display-lg text-on-surface">How It Works</h2>
+                <p class="text-on-surface-variant">Three simple steps to take control of your nutrition.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-surface-container-low border border-outline-variant p-8 rounded-2xl flex flex-col justify-between hover:border-primary-container/30 transition-all group">
+                    <div class="space-y-4">
+                        <div class="w-12 h-12 bg-primary-container/10 border border-primary-container/30 text-primary-container rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl">restaurant</span>
+                        </div>
+                        <h3 class="text-xl font-bold font-display-lg">Log Your Meals</h3>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">
+                            Enter what you ate and how many calories. Pick a meal slot (breakfast, lunch, dinner, snack) and the time you ate. That's it.
+                        </p>
+                    </div>
+                    <a href="log_meal_futuristic_typography/code.html" class="flex items-center gap-2 text-sm text-primary hover:text-primary-container font-semibold pt-6 transition-colors">
+                        Log a Meal
+                        <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </a>
+                </div>
+
+                <div class="bg-surface-container-low border border-outline-variant p-8 rounded-2xl flex flex-col justify-between hover:border-secondary/30 transition-all group">
+                    <div class="space-y-4">
+                        <div class="w-12 h-12 bg-secondary/10 border border-secondary/30 text-secondary rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl">bar_chart</span>
+                        </div>
+                        <h3 class="text-xl font-bold font-display-lg">Track Your Progress</h3>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">
+                            View your daily calorie gauge and a 7-day chart of your intake. See at a glance if you're on track with your goal.
+                        </p>
+                    </div>
+                    <a href="home_dashboard_fixed_typography/code.html" class="flex items-center gap-2 text-sm text-secondary hover:text-secondary-container font-semibold pt-6 transition-colors">
+                        View Dashboard
+                        <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </a>
+                </div>
+
+                <div class="bg-surface-container-low border border-outline-variant p-8 rounded-2xl flex flex-col justify-between hover:border-tertiary/30 transition-all group">
+                    <div class="space-y-4">
+                        <div class="w-12 h-12 bg-tertiary/10 border border-tertiary/30 text-tertiary rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl">psychology</span>
+                        </div>
+                        <h3 class="text-xl font-bold font-display-lg">AI Analysis</h3>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">
+                            Get a personalized AI summary of your daily intake, with motivational quotes and actionable insights based on your actual data.
+                        </p>
+                    </div>
+                    <a href="home_dashboard_fixed_typography/code.html#agentPanel" class="flex items-center gap-2 text-sm text-tertiary hover:text-white font-semibold pt-6 transition-colors">
+                        See AI Analysis
+                        <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+<!-- Footer -->
+<footer class="bg-secondary/20 border-t border-outline-variant/20 py-12 mt-auto">
+      <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+        <!-- Copyright -->
+        <div class="text-sm text-on-surface-variant font-medium">
+          © 2026 NutriAI — All rights reserved
+        </div>
+
+        <!-- Quick Links -->
+        <div class="flex flex-wrap justify-center gap-6 text-sm text-on-surface-variant font-medium">
+          <a href="#" class="hover:text-primary transition-colors">Privacy Policy</a>
+          <a href="#" class="hover:text-primary transition-colors">Terms of Service</a>
+          <a href="#" class="hover:text-primary transition-colors">About Us</a>
+          <a href="contact/index.html" class="hover:text-primary transition-colors">Contact</a>
+        </div>
+
+        <!-- Social Media Icons -->
+        <div class="flex items-center gap-4">
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+            </svg>
+          </a>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Interactive script logic -->
+    <script>
+      // Mobile menu toggle
+      function toggleMobileMenu() {
+        const mobileMenu = document.getElementById('mobileMenu');
+        const menuIcon = document.getElementById('menuIcon');
+        if (mobileMenu.classList.contains('hidden')) {
+          mobileMenu.classList.remove('hidden');
+          menuIcon.innerText = 'close';
+        } else {
+          mobileMenu.classList.add('hidden');
+          menuIcon.innerText = 'menu';
+        }
+      }
+
+      // Auth modal logic
+      let authMode = 'signin';
+
+      function openAuthModal() {
+        document.getElementById('authModal').classList.remove('hidden');
+        document.getElementById('authModal').classList.add('flex');
+      }
+
+      function closeAuthModal() {
+        document.getElementById('authModal').classList.add('hidden');
+        document.getElementById('authModal').classList.remove('flex');
+      }
+
+      function switchAuthTab(mode) {
+        authMode = mode;
+        const tabSignIn = document.getElementById('tabSignIn');
+        const tabSignUp = document.getElementById('tabSignUp');
+        const submitBtn = document.getElementById('authSubmitBtn');
+        
+        if (mode === 'signin') {
+          tabSignIn.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all";
+          tabSignUp.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+          submitBtn.innerText = "Sign In";
+        } else {
+          tabSignUp.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all";
+          tabSignIn.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+          submitBtn.innerText = "Sign Up";
+        }
+      }
+
+      let _authLoading = false;
+
+      async function handleAuthSubmit(event) {
+        event.preventDefault();
+        if (_authLoading) return;
+        _authLoading = true;
+
+        const btn = document.getElementById('authSubmitBtn');
+        const originalText = btn.innerText;
+        btn.innerText = 'Processing...';
+        btn.disabled = true;
+
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+
+        try {
+          if (authMode === 'signin') {
+            await NutriDB.signIn(email, password);
+          } else {
+            await NutriDB.signUp(email, password);
+            alert('Account created! Check your email for a confirmation link, or sign in now.');
+            switchAuthTab('signin');
+            btn.innerText = originalText;
+            btn.disabled = false;
+            _authLoading = false;
+            return;
+          }
+          updateAuthUI();
+          closeAuthModal();
+          window.location.href = 'home_dashboard_fixed_typography/code.html';
+        } catch (err) {
+          alert(err.message || 'Auth error. Please try again.');
+        }
+
+        btn.innerText = originalText;
+        btn.disabled = false;
+        _authLoading = false;
+      }
+
+      async function signInWithSocial(provider) {
+        alert('Social sign-in requires OAuth setup in Supabase dashboard. Use email/password for now.');
+      }
+
+      async function signOutUser() {
+        try {
+          await NutriDB.signOut();
+          updateAuthUI();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      async function updateAuthUI() {
+        const user = await NutriDB.getUser().catch(() => null);
+        const signInBtn = document.getElementById('signInBtn');
+        const userMenu = document.getElementById('userMenu');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        const userAvatar = document.getElementById('userAvatar');
+
+        if (user) {
+          if (signInBtn) signInBtn.classList.add('hidden');
+          if (userMenu) {
+            userMenu.classList.remove('hidden');
+            userMenu.classList.add('block');
+          }
+          if (userEmailDisplay) userEmailDisplay.innerText = user.email;
+          if (userAvatar) {
+            userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=ff7f50&color=0b1326`;
+          }
+        } else {
+          if (signInBtn) signInBtn.classList.remove('hidden');
+          if (userMenu) {
+            userMenu.classList.remove('block');
+            userMenu.classList.add('hidden');
+          }
+        }
+      }
+
+      // Run on page load
+      document.addEventListener('DOMContentLoaded', () => {
+        updateAuthUI();
+      });
+    </script>
+</body>
+</html>

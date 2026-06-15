@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Biometric Nutrition | Dashboard</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=zoom" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            background: rgba(30, 41, 59, 0.7);
+        }
+        .coral-glow {
+            box-shadow: 0 0 20px rgba(255, 127, 80, 0.15);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b1326;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3449;
+            border-radius: 10px;
+        }
+    </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../supabase/db.js"></script>
+<script src="../agent/agent.js"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-container": "#1e19b2",
+                      "surface": "#0b1326",
+                      "on-secondary-container": "#004d44",
+                      "on-error-container": "#ffdad6",
+                      "surface-container-low": "#131b2e",
+                      "surface-container-highest": "#2d3449",
+                      "on-secondary-fixed": "#00201c",
+                      "surface-container-lowest": "#060e20",
+                      "error-container": "#93000a",
+                      "on-primary-container": "#6c2000",
+                      "error": "#ffb4ab",
+                      "on-tertiary-fixed-variant": "#2f2ebe",
+                      "background": "#0b1326",
+                      "tertiary": "#c0c1ff",
+                      "surface-bright": "#31394d",
+                      "surface-tint": "#ffb59c",
+                      "primary-fixed": "#ffdbcf",
+                      "secondary-container": "#03c6b2",
+                      "inverse-primary": "#a43c12",
+                      "tertiary-fixed-dim": "#c0c1ff",
+                      "on-error": "#690005",
+                      "inverse-on-surface": "#283044",
+                      "on-primary-fixed-variant": "#822800",
+                      "secondary": "#44e2cd",
+                      "primary-fixed-dim": "#ffb59c",
+                      "primary": "#ffb59c",
+                      "surface-container-high": "#222a3d",
+                      "on-surface-variant": "#dec0b6",
+                      "surface-variant": "#2d3449",
+                      "on-secondary": "#003731",
+                      "surface-dim": "#0b1326",
+                      "on-secondary-fixed-variant": "#005047",
+                      "on-background": "#dae2fd",
+                      "outline-variant": "#57423b",
+                      "inverse-surface": "#dae2fd",
+                      "secondary-fixed-dim": "#3cddc7",
+                      "outline": "#a68b82",
+                      "tertiary-fixed": "#e1e0ff",
+                      "on-primary": "#5c1a00",
+                      "tertiary-container": "#979aff",
+                      "on-tertiary": "#1000a9",
+                      "on-primary-fixed": "#380c00",
+                      "on-tertiary-fixed": "#07006c",
+                      "secondary-fixed": "#62fae3",
+                      "primary-container": "#ff7f50",
+                      "surface-container": "#171f33",
+                      "on-surface": "#dae2fd"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-desktop": "40px",
+                      "margin-mobile": "16px",
+                      "base": "8px",
+                      "gutter": "24px",
+                      "container-max": "1280px"
+              },
+              "fontFamily": {
+                      "display-lg": ["Space Grotesk"],
+                      "headline-md": ["Space Grotesk"],
+                      "headline-sm": ["Space Grotesk"],
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-caps": ["Inter"]
+              },
+              "fontSize": {
+                      "h1": ["56px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "h2": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                      "h3": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                      "body-large": ["18px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                      "body-regular": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                      "small-text": ["13px", { "lineHeight": "1.5", "fontWeight": "500", "letterSpacing": "0.02em" }],
+                      "nav-button": ["14px", { "lineHeight": "1.2", "fontWeight": "500", "letterSpacing": "0.01em" }]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-x-hidden">
+<!-- Sticky Header -->
+<header class="fixed top-0 left-0 right-0 h-20 bg-primary/20 backdrop-blur-md border-b border-outline-variant/20 z-50">
+  <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+    <!-- Logo -->
+    <a href="../index.html" class="flex items-center gap-2 group">
+      <span class="material-symbols-outlined text-primary-container text-3xl group-hover:scale-110 transition-transform" data-icon="insights">insights</span>
+      <span class="text-2xl font-bold font-display-lg tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent">NutriAI</span>
+    </a>
+
+    <!-- Desktop Navigation Links -->
+    <nav class="hidden md:flex items-center gap-8">
+      <a href="../index.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Home</a>
+      <a href="../home_dashboard_fixed_typography/code.html" class="text-sm font-semibold text-primary-container border-b-2 border-primary-container py-2">Dashboard</a>
+      <a href="../log_meal_futuristic_typography/code.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Log Meal</a>
+      <a href="../bmi_calculator_futuristic_typography/code.html" class="text-sm font-medium hover:text-primary transition-colors py-2">BMI Calculator</a>
+      <a href="../contact/index.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Contact</a>
+      <button onclick="document.getElementById('agentPanel').scrollIntoView({behavior:'smooth'}); document.querySelector('#agentPanel [data-tab]').click()" class="text-sm font-medium hover:text-primary transition-colors py-2 flex items-center gap-1">
+        <span class="material-symbols-outlined text-base">psychology</span> Agent
+      </button>
+    </nav>
+
+    <!-- Right-Side Auth & Mobile Toggle -->
+    <div class="flex items-center gap-4">
+      <button onclick="openAuthModal()" id="signInBtn" class="bg-primary-container/20 border border-primary-container/50 hover:bg-primary-container hover:text-on-primary-fixed text-primary-container px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-primary-container/20">
+        Sign In
+      </button>
+      <!-- User profile menu (initially hidden) -->
+      <div id="userMenu" class="hidden relative group">
+        <button class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container">
+          <img id="userAvatar" alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0YmPVPiochboDphA_4TfEDAJNpnAQ9XjyPi8AMdML942mSGGd6rp_b4oRhkt73B1qQFyBv4F728gvJ8hl4WeVoRv_vmGeszKrlmm-bjW2_ke8AWPHofb1rgp4ZoKWiOtQpfY3XkUbIDOFgQ3rombxdyrZB6k1tcWNIfzhPztU5tKLUkoFeFmW4FhDQVjIXSBEsr__kgQbilxE7Cn25nFmKKcV7bHTEHZSui-JpwBJel84C6i6tjQHCnb8-lbltrbCUIUGCmyexIwr"/>
+        </button>
+        <div class="absolute right-0 mt-2 w-48 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden group-hover:block hover:block z-50">
+          <p id="userEmailDisplay" class="text-[11px] text-on-surface-variant px-3 py-1 truncate">user@example.com</p>
+          <hr class="border-outline-variant/30 my-1"/>
+          <button onclick="signOutUser()" class="w-full text-left text-xs hover:bg-surface-container hover:text-error px-3 py-2 rounded-lg transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">logout</span> Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Hamburger Menu Button -->
+      <button onclick="toggleMobileMenu()" class="md:hidden text-on-surface hover:text-primary transition-colors">
+        <span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Dropdown Navigation -->
+  <div id="mobileMenu" class="hidden md:hidden absolute top-20 left-0 right-0 bg-surface border-b border-outline-variant/50 flex flex-col p-6 space-y-4 shadow-xl z-40 animate-fade-in">
+    <a href="../index.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Home</a>
+    <a href="../home_dashboard_fixed_typography/code.html" class="text-lg font-semibold text-primary-container py-2 border-l-4 border-primary-container pl-3">Dashboard</a>
+    <a href="../log_meal_futuristic_typography/code.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Log Meal</a>
+    <a href="../bmi_calculator_futuristic_typography/code.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">BMI Calculator</a>
+    <a href="../contact/index.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Contact</a>
+    <a onclick="document.getElementById('agentPanel').scrollIntoView({behavior:'smooth'}); document.getElementById('agentPanel').scrollIntoView({behavior:'smooth'}); toggleMobileMenu()" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3 flex items-center gap-2 cursor-pointer">🤖 Agent</a>
+  </div>
+</header>
+
+<!-- Main Content Area -->
+<main class="min-h-screen pt-24 pb-16 flex flex-col">
+  <!-- Dashboard Hero + Image Section -->
+  <section class="max-w-7xl mx-auto px-6 w-full grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+    <!-- Calorie Gauge Card -->
+    <div class="md:col-span-8 glass-panel border border-outline-variant rounded-2xl p-8 coral-glow relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-48 h-48 bg-primary opacity-[0.04] blur-3xl rounded-full"></div>
+      <div class="flex flex-col h-full justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono uppercase text-on-surface-variant tracking-wider">Energy Balance</span>
+          <div class="flex items-center gap-2">
+            <span id="currentDateDisplay" class="text-[10px] px-2 py-0.5 bg-surface-container-highest rounded-full font-mono text-on-surface-variant"></span>
+            <span class="text-[10px] px-2 py-0.5 bg-primary/20 text-primary border border-primary/30 rounded-full font-semibold uppercase font-mono">Live</span>
+          </div>
+        </div>
+        <div class="mt-4">
+          <p id="gaugeRemaining" class="text-h1 font-display-lg text-on-surface">--</p>
+          <p class="text-sm text-on-surface-variant">kcal remaining today</p>
+        </div>
+        <div class="mt-4 w-full bg-surface-container-highest rounded-full h-2 overflow-hidden">
+          <div id="gaugeBar" class="h-full bg-gradient-to-r from-primary-container to-primary rounded-full" style="width: 0%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-on-surface-variant mt-1">
+          <span>0 kcal</span>
+          <span id="gaugeGoalLabel">-- kcal goal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calorie Goal Card -->
+    <div class="md:col-span-4 glass-panel border border-outline-variant rounded-2xl p-6 flex flex-col justify-center items-center text-center">
+      <span class="material-symbols-outlined text-4xl text-primary-container mb-3">flag</span>
+      <p class="text-[11px] font-mono uppercase text-on-surface-variant tracking-wider">DAILY GOAL</p>
+      <p id="gaugeGoalDisplay" class="text-h2 font-display-lg text-on-surface mt-1">--</p>
+      <p class="text-xs text-on-surface-variant">kcal target</p>
+    </div>
+  </section>
+
+  <!-- 7-Day Calorie Chart -->
+  <section class="max-w-7xl mx-auto px-6 w-full mb-8">
+    <div class="glass-panel border border-outline-variant rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold font-display-lg text-on-surface">Weekly Log</h3>
+        <span class="text-[10px] px-2 py-0.5 bg-primary-container/10 text-primary-container border border-primary-container/30 rounded-full font-semibold uppercase font-mono">this week</span>
+      </div>
+      <div class="flex flex-col md:flex-row items-center justify-center gap-6">
+        <div class="max-w-xs w-full">
+          <canvas id="calorieChart" height="340"></canvas>
+        </div>
+        <div class="flex md:flex-col gap-3 md:gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-3 h-3 rounded-full" style="background:#ff7f50"></span>
+            <span class="text-on-surface-variant">Achieved</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-3 h-3 rounded-full" style="background:#d4a84b"></span>
+            <span class="text-on-surface-variant">In Progress</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-3 h-3 rounded-full" style="background:#2d3449"></span>
+            <span class="text-on-surface-variant">Missed</span>
+          </div>
+        </div>
+      </div>
+      <p id="chartEmpty" class="text-sm text-on-surface-variant text-center py-8 hidden">Log at least one meal this week to see your progress.</p>
+    </div>
+  </section>
+
+
+
+  <!-- Dashboard Data + Questionnaire -->
+  <script>
+    async function updateDashboardDisplay(goals, todayMeals) {
+      const user = await NutriDB.getUser().catch(() => null);
+
+      if (!user) {
+        renderDashboard({ goalCalories: 2500 }, [
+          { calories: 520 },
+          { calories: 380 },
+        ]);
+        return;
+      }
+
+      renderDashboard(goals, todayMeals);
+    }
+
+    let _calorieChart = null;
+
+    function renderDashboard(goals, todayMeals) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      document.getElementById('currentDateDisplay').textContent = dateStr;
+
+      const hasGoals = goals && goals.goalCalories;
+      const intake = todayMeals.reduce((s, m) => s + (m.calories || 0), 0);
+      const goalCals = hasGoals ? goals.goalCalories : 0;
+
+      if (hasGoals) {
+        const remaining = Math.max(goalCals - intake, 0);
+        const pct = Math.min((intake / goalCals) * 100, 100);
+
+        document.getElementById('gaugeRemaining').textContent = remaining.toLocaleString();
+        document.getElementById('gaugeGoalLabel').textContent = `${goalCals.toLocaleString()} kcal goal`;
+        document.getElementById('gaugeGoalDisplay').textContent = goalCals.toLocaleString();
+        document.getElementById('gaugeBar').style.width = `${pct}%`;
+      } else {
+        document.getElementById('gaugeRemaining').textContent = '--';
+        document.getElementById('gaugeGoalLabel').textContent = '-- kcal goal';
+        document.getElementById('gaugeGoalDisplay').textContent = '--';
+        document.getElementById('gaugeBar').style.width = '0%';
+      }
+    }
+
+    const DAY_COLORS = { achieved: '#ff7f50', progress: '#d4a84b', missed: '#2d3449' };
+
+    async function renderChart() {
+      const canvas = document.getElementById('calorieChart');
+      const empty = document.getElementById('chartEmpty');
+      const user = await NutriDB.getUser().catch(() => null);
+
+      let weekDays;
+      let goalCals = 2000;
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+      if (user) {
+        const goals = await NutriDB.getUserGoals().catch(() => null);
+        if (goals) goalCals = goals.goalCalories || 2000;
+        weekDays = await NutriDB.getWeekMeals().catch(() => []);
+      } else {
+        const now = new Date();
+        const mon = new Date(now);
+        mon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+        goalCals = 2500;
+        weekDays = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(mon);
+          d.setDate(mon.getDate() + i);
+          const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          const isPast = d <= now;
+          const dow = d.getDay();
+          // Mock: Mon(1800) in-progress, Wed(2600) achieved, Fri(2400) achieved, today achieved, rest missed
+          const mockCals = { 1: 1800, 3: 2600, 5: 2400, [now.getDay()]: 2550 };
+          const hasMeals = isPast && mockCals[dow] !== undefined;
+          weekDays.push({ date: dateStr, dayOfWeek: dow, mealCount: hasMeals ? 2 : 0, totalCalories: hasMeals ? mockCals[dow] : 0, hasMeals });
+        }
+      }
+
+      const achieved = weekDays.filter(d => d.hasMeals && d.totalCalories >= goalCals).length;
+      const inProgress = weekDays.filter(d => d.hasMeals && d.totalCalories < goalCals).length;
+      const hasAny = achieved + inProgress > 0;
+
+      if (!hasAny) {
+        canvas.classList.add('hidden');
+        empty.classList.remove('hidden');
+        if (_calorieChart) { _calorieChart.destroy(); _calorieChart = null; }
+        return;
+      }
+
+      canvas.classList.remove('hidden');
+      empty.classList.add('hidden');
+
+      const todayDow = new Date().getDay();
+      const ordered = [];
+      for (let i = 0; i < 7; i++) {
+        const idx = (todayDow + i) % 7;
+        ordered.push(weekDays.find(d => d.dayOfWeek === idx));
+      }
+
+      function dayStatus(d) {
+        if (!d.hasMeals) return 'missed';
+        return d.totalCalories >= goalCals ? 'achieved' : 'progress';
+      }
+
+      const labels = ordered.map(d => dayNames[d.dayOfWeek]);
+      const colors = ordered.map(d => DAY_COLORS[dayStatus(d)]);
+
+      if (_calorieChart) _calorieChart.destroy();
+
+      const ctx = canvas.getContext('2d');
+      _calorieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: [1, 1, 1, 1, 1, 1, 1],
+            backgroundColor: colors,
+            borderColor: '#171f33',
+            borderWidth: 2,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#dec0b6', font: { size: 9 }, padding: 8, usePointStyle: true, pointStyle: 'circle', boxWidth: 6 }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(ct) {
+                  const day = ordered[ct.dataIndex];
+                  if (!day) return '';
+                  const st = dayStatus(day);
+                  if (st === 'achieved') return `${dayNames[day.dayOfWeek]} — ${day.totalCalories} kcal ✓ achieved`;
+                  if (st === 'progress') return `${dayNames[day.dayOfWeek]} — ${day.totalCalories}/${goalCals} kcal in progress`;
+                  return `${dayNames[day.dayOfWeek]} — no meals`;
+                }
+              }
+            }
+          }
+        },
+        plugins: [{
+          id: 'centerText',
+          beforeDraw: function(chart) {
+            const { width, height, ctx: c } = chart;
+            c.save();
+            const cx = width / 2;
+            const cy = height / 2 - 6;
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.font = 'bold 28px Space Grotesk, sans-serif';
+            c.fillStyle = '#dae2fd';
+            c.fillText(`${achieved + inProgress}/7`, cx, cy - 10);
+            c.font = '9px monospace';
+            c.fillStyle = '#dec0b6';
+            c.fillText('days logged this week', cx, cy + 16);
+            c.restore();
+          }
+        }]
+      });
+    }
+
+    async function loadDashboard() {
+      const user = await NutriDB.getUser().catch(() => null);
+      let goals = null;
+      let todayMeals = [];
+
+      if (user) {
+        goals = await NutriDB.getUserGoals().catch(() => null);
+        todayMeals = await NutriDB.getTodayMeals().catch(() => []);
+      }
+
+      updateDashboardDisplay(goals, todayMeals);
+      renderChart();
+    }
+
+    async function openQuestionnaire() {
+      document.getElementById('questionnaireModal').classList.remove('hidden');
+      document.getElementById('questionnaireModal').classList.add('flex');
+    }
+
+    function closeQuestionnaire() {
+      document.getElementById('questionnaireModal').classList.add('hidden');
+      document.getElementById('questionnaireModal').classList.remove('flex');
+    }
+
+    async function handleQuestionnaireSubmit(e) {
+      e.preventDefault();
+      const btn = e.submitter;
+      btn.disabled = true;
+      btn.textContent = 'Calculating...';
+      try {
+        const data = {
+          age: parseInt(document.getElementById('qAge').value),
+          gender: document.getElementById('qGender').value,
+          heightCm: parseFloat(document.getElementById('qHeight').value),
+          weightKg: parseFloat(document.getElementById('qWeight').value),
+          activityLevel: document.getElementById('qActivity').value,
+          goal: document.getElementById('qGoal').value
+        };
+        await NutriDB.saveUserGoals(data);
+        closeQuestionnaire();
+        await loadDashboard();
+        if (typeof refreshAgent === 'function') refreshAgent();
+      } catch (err) {
+        alert('Error saving goals: ' + err.message);
+      }
+      btn.disabled = false;
+      btn.textContent = 'Start My Plan';
+    }
+
+    async function checkQuestionnaire() {
+      const user = await NutriDB.getUser().catch(() => null);
+      if (!user) return;
+      const goals = await NutriDB.getUserGoals().catch(() => null);
+      if (!goals) {
+        setTimeout(openQuestionnaire, 500);
+      }
+    }
+
+  </script>
+  
+  <!-- ── NutriAI Agent Panel ──────────────────────────────── -->
+  <section id="agentPanel" class="max-w-7xl mx-auto px-6 w-full mb-8 scroll-mt-24">
+    <div class="glass-panel border border-outline-variant rounded-2xl p-6 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-48 h-48 bg-tertiary opacity-[0.04] blur-3xl rounded-full"></div>
+
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-outline-variant/30 pb-4 mb-6">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-3xl text-tertiary">psychology</span>
+          <div>
+            <h3 class="text-lg font-bold font-display-lg text-on-surface">NutriAI Agent</h3>
+            <p class="text-xs text-on-surface-variant">AI-powered nutrition analysis</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5 bg-surface-container-high border border-outline-variant/30 rounded-lg px-2 py-1">
+            <input type="text" id="apiKeyInput" placeholder="Groq API key" class="w-44 bg-transparent text-xs text-on-surface placeholder:text-on-surface-variant/40 border-0 outline-none p-0.5 font-mono">
+            <button onclick="saveApiKey()" class="text-[10px] px-1.5 py-0.5 bg-primary-container/20 text-primary-container rounded font-semibold hover:bg-primary-container/30 transition-colors">Save</button>
+          </div>
+          <button onclick="refreshAgent()" class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded" title="Refresh Analysis">
+            <span class="material-symbols-outlined text-lg">refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Analysis Tab (single tab, no chat) -->
+      <div id="agentAnalysisTab">
+        <div id="analysisLoading" class="text-center py-8">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant/40 animate-spin">sync</span>
+          <p class="text-xs text-on-surface-variant mt-2">Generating your nutrition analysis...</p>
+        </div>
+        <div id="analysisContent" class="hidden space-y-4">
+          <div id="analysisText" class="text-sm text-on-surface leading-relaxed"></div>
+          <div id="analysisQuote" class="text-sm text-secondary italic border-t border-outline-variant/20 pt-4 mt-4"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Questionnaire Modal (shown on first login) -->
+  <div id="questionnaireModal" class="fixed inset-0 bg-background/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="bg-surface-container border border-outline-variant w-full max-w-md rounded-2xl p-8 relative shadow-2xl coral-glow">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold font-display-lg text-on-surface mb-2">Set Up Your Profile</h2>
+        <p class="text-sm text-on-surface-variant">Tell us about yourself so we can calculate your daily nutrition targets.</p>
+      </div>
+
+      <form id="questionnaireForm" onsubmit="handleQuestionnaireSubmit(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Age</label>
+            <input type="number" id="qAge" required min="10" max="120" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface" placeholder="25">
+          </div>
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Gender</label>
+            <select id="qGender" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Height (cm)</label>
+            <input type="number" id="qHeight" required min="100" max="250" step="0.1" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface" placeholder="175">
+          </div>
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Weight (kg)</label>
+            <input type="number" id="qWeight" required min="20" max="300" step="0.1" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface" placeholder="70">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Activity Level</label>
+          <select id="qActivity" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface">
+            <option value="sedentary">Sedentary (desk job, no exercise)</option>
+            <option value="light">Light (1-3 days/week)</option>
+            <option value="moderate">Moderate (3-5 days/week)</option>
+            <option value="active">Active (6-7 days/week)</option>
+            <option value="very_active">Very Active (athlete / physical job)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Goal</label>
+          <select id="qGoal" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface">
+            <option value="lose">Lose Weight</option>
+            <option value="maintain">Maintain Weight</option>
+            <option value="gain">Gain Muscle</option>
+          </select>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-primary-container text-on-primary-fixed hover:brightness-110 text-sm font-semibold rounded-lg transition-all duration-300 mt-2">
+          Start My Plan
+        </button>
+      </form>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="bg-secondary/20 border-t border-outline-variant/20 py-12 mt-auto">
+  <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+    <!-- Copyright -->
+    <div class="text-sm text-on-surface-variant font-medium">
+      © 2026 NutriAI — All rights reserved
+    </div>
+
+    <!-- Quick Links -->
+    <div class="flex flex-wrap justify-center gap-6 text-sm text-on-surface-variant font-medium">
+      <a href="#" class="hover:text-primary transition-colors">Privacy Policy</a>
+      <a href="#" class="hover:text-primary transition-colors">Terms of Service</a>
+      <a href="#" class="hover:text-primary transition-colors">About Us</a>
+      <a href="../contact/index.html" class="hover:text-primary transition-colors">Contact</a>
+    </div>
+
+    <!-- Social Media Icons -->
+    <div class="flex items-center gap-4">
+      <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+      </a>
+      <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+        </svg>
+      </a>
+      <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<!-- Supabase Auth Modal -->
+<div id="authModal" class="fixed inset-0 bg-background/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+  <div class="bg-surface-container border border-outline-variant w-full max-w-md rounded-2xl p-8 relative shadow-2xl coral-glow">
+    <!-- Close Button -->
+    <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    
+    <!-- Modal Content -->
+    <div class="text-center mb-6">
+      <h2 class="text-2xl font-bold font-display-lg text-on-surface mb-2">Welcome to NutriAI</h2>
+      <p class="text-sm text-on-surface-variant">Sign in or create an account with Supabase Auth</p>
+    </div>
+
+    <!-- Auth Tabs -->
+    <div class="flex border-b border-outline-variant/30 mb-6">
+      <button id="tabSignIn" onclick="switchAuthTab('signin')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all">Sign In</button>
+      <button id="tabSignUp" onclick="switchAuthTab('signup')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all">Sign Up</button>
+    </div>
+
+    <!-- Auth Form -->
+    <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Email Address</label>
+        <input type="email" id="authEmail" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="name@domain.com">
+      </div>
+      <div>
+        <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Password</label>
+        <input type="password" id="authPassword" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="••••••••">
+      </div>
+      <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-primary-container text-on-primary-fixed hover:brightness-115 text-sm font-semibold rounded-lg transition-all duration-300">
+        Sign In
+      </button>
+    </form>
+
+    <!-- Divider -->
+    <div class="flex items-center my-6">
+      <div class="flex-1 border-t border-outline-variant/30"></div>
+      <span class="px-3 text-[10px] font-mono uppercase text-on-surface-variant/60">Or Continue With</span>
+      <div class="flex-1 border-t border-outline-variant/30"></div>
+    </div>
+
+    <!-- Social Sign In -->
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="signInWithSocial('google')" class="flex items-center justify-center gap-2 py-2.5 bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Google
+      </button>
+      <button onclick="signInWithSocial('github')" class="flex items-center justify-center gap-2 py-2.5 bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+        <svg class="w-4 h-4 fill-on-surface" viewBox="0 0 24 24">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mobile menu toggle
+  function toggleMobileMenu() {
+    const mobileMenu = document.getElementById('mobileMenu');
+    const menuIcon = document.getElementById('menuIcon');
+    if (mobileMenu.classList.contains('hidden')) {
+      mobileMenu.classList.remove('hidden');
+      menuIcon.innerText = 'close';
+    } else {
+      mobileMenu.classList.add('hidden');
+      menuIcon.innerText = 'menu';
+    }
+  }
+
+  // Auth modal logic
+  let authMode = 'signin';
+
+  function openAuthModal() {
+    document.getElementById('authModal').classList.remove('hidden');
+    document.getElementById('authModal').classList.add('flex');
+  }
+
+  function closeAuthModal() {
+    document.getElementById('authModal').classList.add('hidden');
+    document.getElementById('authModal').classList.remove('flex');
+  }
+
+  function switchAuthTab(mode) {
+    authMode = mode;
+    const tabSignIn = document.getElementById('tabSignIn');
+    const tabSignUp = document.getElementById('tabSignUp');
+    const submitBtn = document.getElementById('authSubmitBtn');
+    
+    if (mode === 'signin') {
+      tabSignIn.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all";
+      tabSignUp.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+      submitBtn.innerText = "Sign In";
+    } else {
+      tabSignUp.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all";
+      tabSignIn.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+      submitBtn.innerText = "Sign Up";
+    }
+  }
+
+  let _authLoading = false;
+
+  async function handleAuthSubmit(event) {
+    event.preventDefault();
+    if (_authLoading) return;
+    _authLoading = true;
+    const btn = document.getElementById('authSubmitBtn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Processing...';
+    btn.disabled = true;
+
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+
+    try {
+      if (authMode === 'signin') {
+        await NutriDB.signIn(email, password);
+      } else {
+        await NutriDB.signUp(email, password);
+        alert('Account created! Check your email for a confirmation link, or sign in now.');
+        switchAuthTab('signin');
+        btn.innerText = originalText;
+        btn.disabled = false;
+        _authLoading = false;
+        return;
+      }
+      await updateAuthUI();
+      closeAuthModal();
+      const goals = await NutriDB.getUserGoals().catch(() => null);
+      if (!goals) {
+        openQuestionnaire();
+      }
+      await loadDashboard();
+      if (typeof refreshAgent === 'function') refreshAgent();
+    } catch (err) {
+      alert(err.message || 'Auth error. Please try again.');
+    }
+    btn.innerText = originalText;
+    btn.disabled = false;
+    _authLoading = false;
+  }
+
+  async function signInWithSocial(provider) {
+    alert('Social sign-in requires OAuth setup in Supabase dashboard. Use email/password for now.');
+  }
+
+  async function signOutUser() {
+    try {
+      await NutriDB.signOut();
+      await updateAuthUI();
+      await loadDashboard();
+      if (typeof refreshAgent === 'function') refreshAgent();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function updateAuthUI() {
+    const user = await NutriDB.getUser().catch(() => null);
+    const signInBtn = document.getElementById('signInBtn');
+    const userMenu = document.getElementById('userMenu');
+    const userEmailDisplay = document.getElementById('userEmailDisplay');
+    const userAvatar = document.getElementById('userAvatar');
+
+    if (user) {
+      if (signInBtn) signInBtn.classList.add('hidden');
+      if (userMenu) {
+        userMenu.classList.remove('hidden');
+        userMenu.classList.add('block');
+      }
+      if (userEmailDisplay) userEmailDisplay.innerText = user.email;
+      if (userAvatar) {
+        userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=ff7f50&color=0b1326`;
+      }
+    } else {
+      if (signInBtn) signInBtn.classList.remove('hidden');
+      if (userMenu) {
+        userMenu.classList.remove('block');
+        userMenu.classList.add('hidden');
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    await updateAuthUI();
+    await loadDashboard();
+    await checkQuestionnaire();
+    seedApiKeyInput();
+
+    if (typeof NutriAIAgent !== 'undefined') {
+      refreshAgent();
+    }
+  });
+
+  // ── API Key Management ──
+  function seedApiKeyInput() {
+    const saved = localStorage.getItem('nutriai_agent_config');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.apiKey) {
+        const input = document.getElementById('apiKeyInput');
+        if (input) input.value = parsed.apiKey;
+      }
+    }
+  }
+
+  function saveApiKey() {
+    const input = document.getElementById('apiKeyInput');
+    if (!input) return;
+    const key = input.value.trim();
+    NutriAIAgent.config.apiKey = key;
+    NutriAIAgent.saveConfig();
+    const btn = input.nextElementSibling;
+    const orig = btn.textContent;
+    btn.textContent = 'Saved!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  }
+
+  // ── Refresh Agent Analysis ──
+  async function refreshAgent() {
+    const loading = document.getElementById('analysisLoading');
+    const content = document.getElementById('analysisContent');
+    const textEl = document.getElementById('analysisText');
+    const quoteEl = document.getElementById('analysisQuote');
+
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+
+    await new Promise(r => setTimeout(r, 200));
+
+    try {
+      const user = await NutriDB.getUser().catch(() => null);
+      if (!user) {
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+        textEl.textContent = 'Sign in to get personalized AI nutrition analysis.';
+        return;
+      }
+
+      const goals = await NutriDB.getUserGoals();
+      const meals = await NutriDB.getTodayMeals();
+
+      if (!goals || !goals.goalCalories) {
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+        textEl.textContent = 'Complete your profile questionnaire to get your personalized AI nutrition analysis.';
+        return;
+      }
+
+      const result = await NutriAIAgent.generateAnalysis(goals, meals, []);
+      loading.classList.add('hidden');
+      content.classList.remove('hidden');
+
+      if (result.analysis) {
+        textEl.textContent = result.analysis;
+      } else {
+        textEl.textContent = 'No analysis returned.';
+      }
+
+      if (result.quote) {
+        quoteEl.textContent = result.quote;
+        quoteEl.classList.remove('hidden');
+      } else {
+        quoteEl.classList.add('hidden');
+      }
+    } catch (err) {
+      loading.classList.add('hidden');
+      content.classList.remove('hidden');
+      textEl.innerHTML = `<span class="text-error">Analysis error: ${err.message}</span>`;
+    }
+  }
+</script>
+</body></html>

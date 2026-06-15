@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>NutriAI - Biometric Log Meal</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="../supabase/db.js"></script>
+    <script src="../agent/agent.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            backdrop-filter: blur(16px);
+            background: rgba(23, 31, 51, 0.7);
+        }
+        .coral-glow {
+            box-shadow: 0 0 40px rgba(255, 127, 80, 0.15);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b1326;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3449;
+            border-radius: 10px;
+        }
+        .animate-slide-in {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "surface": "#0b1326",
+                "surface-container-lowest": "#060e20",
+                "surface-container-low": "#131b2e",
+                "surface-container": "#171f33",
+                "surface-container-high": "#222a3d",
+                "surface-container-highest": "#2d3449",
+                "background": "#0b1326",
+                "primary": "#ffb59c",
+                "primary-container": "#ff7f50",
+                "on-primary-fixed": "#380c00",
+                "secondary": "#44e2cd",
+                "secondary-container": "#03c6b2",
+                "on-secondary-container": "#004d44",
+                "tertiary": "#c0c1ff",
+                "on-surface": "#dae2fd",
+                "on-surface-variant": "#dec0b6",
+                "outline-variant": "#57423b",
+                "error": "#ffb4ab"
+              },
+              borderRadius: {
+                "DEFAULT": "0.25rem",
+                "lg": "0.375rem",
+                "xl": "0.75rem",
+                "2xl": "1rem",
+                "full": "9999px"
+              },
+              fontFamily: {
+                "display-lg": ["Space Grotesk"],
+                "body-md": ["Inter"]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-x-hidden flex flex-col min-h-screen">
+
+    <!-- Sticky Header -->
+    <header class="fixed top-0 left-0 right-0 h-20 bg-primary/20 backdrop-blur-md border-b border-outline-variant/20 z-50">
+      <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+        <!-- Logo -->
+        <a href="../index.html" class="flex items-center gap-2 group">
+          <span class="material-symbols-outlined text-primary-container text-3xl group-hover:scale-110 transition-transform" data-icon="insights">insights</span>
+          <span class="text-2xl font-bold font-display-lg tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent">NutriAI</span>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden md:flex items-center gap-8">
+          <a href="../index.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Home</a>
+          <a href="../home_dashboard_fixed_typography/code.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Dashboard</a>
+          <a href="../log_meal_futuristic_typography/code.html" class="text-sm font-semibold text-primary-container border-b-2 border-primary-container py-2">Log Meal</a>
+          <a href="../bmi_calculator_futuristic_typography/code.html" class="text-sm font-medium hover:text-primary transition-colors py-2">BMI Calculator</a>
+          <a href="../contact/index.html" class="text-sm font-medium hover:text-primary transition-colors py-2">Contact</a>
+          <a href="../home_dashboard_fixed_typography/code.html#agentPanel" class="text-sm font-medium hover:text-primary transition-colors py-2 flex items-center gap-1">
+            <span class="material-symbols-outlined text-base">psychology</span> Agent
+          </a>
+        </nav>
+
+        <!-- Right-Side Auth & Mobile Toggle -->
+        <div class="flex items-center gap-4">
+          <button onclick="openAuthModal()" id="signInBtn" class="bg-primary-container/20 border border-primary-container/50 hover:bg-primary-container hover:text-on-primary-fixed text-primary-container px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-primary-container/20">
+            Sign In
+          </button>
+          <!-- User profile menu (initially hidden) -->
+          <div id="userMenu" class="hidden relative group">
+            <button class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container">
+              <img id="userAvatar" alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0YmPVPiochboDphA_4TfEDAJNpnAQ9XjyPi8AMdML942mSGGd6rp_b4oRhkt73B1qQFyBv4F728gvJ8hl4WeVoRv_vmGeszKrlmm-bjW2_ke8AWPHofb1rgp4ZoKWiOtQpfY3XkUbIDOFgQ3rombxdyrZB6k1tcWNIfzhPztU5tKLUkoFeFmW4FhDQVjIXSBEsr__kgQbilxE7Cn25nFmKKcV7bHTEHZSui-JpwBJel84C6i6tjQHCnb8-lbltrbCUIUGCmyexIwr"/>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden group-hover:block hover:block z-50">
+              <p id="userEmailDisplay" class="text-[11px] text-on-surface-variant px-3 py-1 truncate">user@example.com</p>
+              <hr class="border-outline-variant/30 my-1"/>
+              <button onclick="signOutUser()" class="w-full text-left text-xs hover:bg-surface-container hover:text-error px-3 py-2 rounded-lg transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">logout</span> Sign Out
+              </button>
+            </div>
+          </div>
+
+          <!-- Hamburger Menu Button -->
+          <button onclick="toggleMobileMenu()" class="md:hidden text-on-surface hover:text-primary transition-colors">
+            <span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Navigation -->
+      <div id="mobileMenu" class="hidden md:hidden absolute top-20 left-0 right-0 bg-surface border-b border-outline-variant/50 flex flex-col p-6 space-y-4 shadow-xl z-40 animate-fade-in">
+        <a href="../index.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Home</a>
+        <a href="../home_dashboard_fixed_typography/code.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Dashboard</a>
+        <a href="../log_meal_futuristic_typography/code.html" class="text-lg font-semibold text-primary-container py-2 border-l-4 border-primary-container pl-3">Log Meal</a>
+        <a href="../bmi_calculator_futuristic_typography/code.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">BMI Calculator</a>
+        <a href="../contact/index.html" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3">Contact</a>
+        <a href="../home_dashboard_fixed_typography/code.html#agentPanel" class="text-lg font-medium hover:text-primary transition-colors py-2 pl-3 flex items-center gap-2">🤖 Agent</a>
+      </div>
+    </header>
+
+    <!-- Supabase Auth Modal -->
+    <div id="authModal" class="fixed inset-0 bg-background/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+      <div class="bg-surface-container border border-outline-variant w-full max-w-md rounded-2xl p-8 relative shadow-2xl coral-glow">
+        <!-- Close Button -->
+        <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        
+        <!-- Modal Content -->
+        <div class="text-center mb-6">
+          <h2 class="text-2xl font-bold font-display-lg text-on-surface mb-2">Welcome to NutriAI</h2>
+          <p class="text-sm text-on-surface-variant">Sign in or create an account with Supabase Auth</p>
+        </div>
+
+        <!-- Auth Tabs -->
+        <div class="flex border-b border-outline-variant/30 mb-6">
+          <button id="tabSignIn" onclick="switchAuthTab('signin')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all">Sign In</button>
+          <button id="tabSignUp" onclick="switchAuthTab('signup')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all">Sign Up</button>
+        </div>
+
+        <!-- Auth Form -->
+        <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Email Address</label>
+            <input type="email" id="authEmail" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="name@domain.com">
+          </div>
+          <div>
+            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Password</label>
+            <input type="password" id="authPassword" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="••••••••">
+          </div>
+          <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-primary-container text-on-primary-fixed hover:brightness-115 text-sm font-semibold rounded-lg transition-all duration-300">
+            Sign In
+          </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="flex items-center my-6">
+          <div class="flex-1 border-t border-outline-variant/30"></div>
+          <span class="px-3 text-[10px] font-mono uppercase text-on-surface-variant/60">Or Continue With</span>
+          <div class="flex-1 border-t border-outline-variant/30"></div>
+        </div>
+
+        <!-- Social Sign In -->
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="signInWithSocial('google')" class="flex items-center justify-center gap-2 py-2.5 bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+            <svg class="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Google
+          </button>
+          <button onclick="signInWithSocial('github')" class="flex items-center justify-center gap-2 py-2.5 bg-surface-container-low hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+            <svg class="w-4 h-4 fill-on-surface" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            GitHub
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 pt-32 pb-16 px-6">
+        <section class="max-w-6xl mx-auto space-y-8 animate-fade-in">
+            <!-- Title -->
+            <div class="text-center md:text-left space-y-2">
+                <span class="text-xs font-bold text-primary-container tracking-widest uppercase font-mono">Biometric Logs</span>
+                <h1 class="text-4xl font-extrabold font-display-lg text-on-surface">Daily Log Meal</h1>
+                <p class="text-sm text-on-surface-variant">Record meal compositions to calculate metabolic allocations and progress ratios.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Left Panel: Input Forms and Totals -->
+                <div class="lg:col-span-8 space-y-8">
+                    <!-- Progress Card -->
+                    <div class="bg-surface-container-low border border-outline-variant p-6 rounded-2xl grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        <!-- SVG Ring -->
+                        <div class="md:col-span-4 flex flex-col items-center justify-center">
+                            <div class="relative w-36 h-36 flex items-center justify-center">
+                                <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                                    <circle class="text-surface-container-highest" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-width="8"></circle>
+                                    <circle id="calorieProgressRing" class="text-primary-container transition-all duration-500 ease-out" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-dasharray="282.7" stroke-dashoffset="282.7" stroke-linecap="round" stroke-width="8"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                    <span class="text-2xl font-bold font-display-lg leading-none" id="caloriesTotalDisplay">0</span>
+                                    <span class="text-[9px] font-mono text-on-surface-variant uppercase mt-1" id="calorieGoalDisplay">/ 2000 KCAL</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar (calories only) -->
+                        <div class="md:col-span-8 space-y-4">
+                            <h3 class="text-sm font-semibold uppercase font-mono text-on-surface-variant tracking-wider">Calorie Progress</h3>
+                            <div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+                                <div id="calorieProgressBar" class="h-full bg-primary-container transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <p class="text-xs text-on-surface-variant text-right" id="calorieProgressLabel">0 / 2000 kcal</p>
+                        </div>
+                    </div>
+
+                    <!-- Logged Items List -->
+                    <div class="bg-surface-container-low border border-outline-variant p-6 rounded-2xl space-y-4">
+                        <div class="flex justify-between items-center border-b border-outline-variant/30 pb-4">
+                            <h3 class="text-lg font-bold font-display-lg">Daily Log Sheet</h3>
+                            <button onclick="clearAllLogs()" class="text-xs text-error font-mono uppercase hover:underline">Clear All</button>
+                        </div>
+                        <div id="mealsListContainer" class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                            <!-- Dynamically loaded meal rows -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Form Input -->
+                <div class="lg:col-span-4 bg-surface-container-low border border-outline-variant p-6 rounded-2xl h-fit relative overflow-hidden coral-glow">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-primary opacity-5 blur-3xl rounded-full"></div>
+                    
+                    <h3 class="text-lg font-bold font-display-lg mb-6 border-b border-outline-variant/30 pb-4">Add Meal Log</h3>
+                    
+                    <form onsubmit="handleMealSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Meal / Food Description</label>
+                            <input type="text" id="mealName" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="e.g. Avocado Salmon Toast">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Calories (kcal)</label>
+                                <input type="number" id="mealCalories" required min="1" max="5000" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface" placeholder="420">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Servings</label>
+                                <input type="number" id="mealServings" value="1" min="0.5" max="99" step="0.5" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Meal Slot</label>
+                                <select id="mealSlot" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface">
+                                    <option value="breakfast">Breakfast</option>
+                                    <option value="lunch">Lunch</option>
+                                    <option value="dinner">Dinner</option>
+                                    <option value="snack">Snack</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Time</label>
+                                <input type="time" id="mealTime" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface" value="12:00">
+                            </div>
+                        </div>
+
+                        <!-- Text description + AI estimation -->
+                        <div class="border-t border-outline-variant/30 pt-4 mt-2">
+                            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-2">Describe your meal for AI estimation</label>
+                            <textarea id="foodDescription" rows="2" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/40 resize-none" placeholder="e.g. a bowl of oatmeal with berries and a side of scrambled eggs"></textarea>
+                            <button type="button" id="textEstimateBtn" onclick="estimateFromText()" class="mt-2 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-base">auto_awesome</span>
+                                Estimate Calories from Description
+                            </button>
+                        </div>
+
+                        <!-- Image upload + AI estimation -->
+                        <div class="border-t border-outline-variant/30 pt-4 mt-2">
+                            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-2">Food Image (optional)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="mealImage" accept="image/*" class="hidden">
+                                <button type="button" onclick="document.getElementById('mealImage').click()" class="flex items-center gap-2 px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+                                    <span class="material-symbols-outlined text-base">image</span>
+                                    Choose Photo
+                                </button>
+                                <span id="imageFileName" class="text-xs text-on-surface-variant">No file chosen</span>
+                            </div>
+                            <!-- Image preview -->
+                            <div id="imagePreview" class="hidden mt-3 relative">
+                                <img id="previewImg" class="w-full max-h-40 object-cover rounded-xl border border-outline-variant/50" alt="Food preview">
+                                <button type="button" onclick="clearImage()" class="absolute top-2 right-2 w-7 h-7 bg-surface/80 rounded-full flex items-center justify-center text-on-surface hover:text-error transition-colors">
+                                    <span class="material-symbols-outlined text-sm">close</span>
+                                </button>
+                            </div>
+                            <button type="button" id="aiEstimateBtn" onclick="estimateFromImage()" class="hidden mt-3 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-base">auto_awesome</span>
+                                Estimate Calories with AI
+                            </button>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 bg-primary-container text-on-primary-fixed hover:brightness-110 text-sm font-semibold rounded-lg shadow transition-all duration-300 mt-4">
+                            Append Biometric Log
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+<!-- Footer -->
+<footer class="bg-secondary/20 border-t border-outline-variant/20 py-12 mt-auto">
+      <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+        <!-- Copyright -->
+        <div class="text-sm text-on-surface-variant font-medium">
+          © 2026 NutriAI — All rights reserved
+        </div>
+
+        <!-- Quick Links -->
+        <div class="flex flex-wrap justify-center gap-6 text-sm text-on-surface-variant font-medium">
+          <a href="#" class="hover:text-primary transition-colors">Privacy Policy</a>
+          <a href="#" class="hover:text-primary transition-colors">Terms of Service</a>
+          <a href="#" class="hover:text-primary transition-colors">About Us</a>
+          <a href="../contact/index.html" class="hover:text-primary transition-colors">Contact</a>
+        </div>
+
+        <!-- Social Media Icons -->
+        <div class="flex items-center gap-4">
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+            </svg>
+          </a>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Interactive script logic -->
+    <script>
+      let mealLogs = [];
+      let _goalCalories = 2000;
+
+      async function loadGoals() {
+        if (typeof NutriDB !== 'undefined' && NutriDB.getUserGoals) {
+          try {
+            const g = await NutriDB.getUserGoals();
+            if (g && g.goalCalories) _goalCalories = g.goalCalories;
+          } catch {}
+        }
+      }
+
+      async function saveAndRender() {
+        renderLogs();
+      }
+
+      async function loadMeals() {
+        await loadGoals();
+        if (typeof NutriDB !== 'undefined' && NutriDB.getTodayMeals) {
+          try {
+            const data = await NutriDB.getTodayMeals();
+            if (data && data.length) {
+              mealLogs = data.map(m => ({
+                id: m.id,
+                name: m.name,
+                calories: m.calories,
+                mealSlot: m.meal_slot || 'snack',
+                time: m.meal_time ? new Date(m.meal_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+              }));
+              renderLogs();
+              return;
+            }
+          } catch {}
+        }
+        mealLogs = [];
+        renderLogs();
+      }
+
+      function renderLogs() {
+        const container = document.getElementById('mealsListContainer');
+        container.innerHTML = '';
+
+        const slots = { breakfast: [], lunch: [], dinner: [], snack: [] };
+        mealLogs.forEach(m => { (slots[m.mealSlot] || slots.snack).push(m); });
+
+        const slotIcons = { breakfast: 'wb_sunny', lunch: 'wb_cloudy', dinner: 'nights_stay', snack: 'cookie' };
+        const slotLabels = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
+
+        let totalCals = 0;
+        let hasMeals = false;
+
+        ['breakfast', 'lunch', 'dinner', 'snack'].forEach(slot => {
+          const items = slots[slot] || [];
+          if (items.length === 0) return;
+          hasMeals = true;
+
+          const section = document.createElement('div');
+          section.className = 'space-y-2';
+          section.innerHTML = `<div class="flex items-center gap-2 py-1">
+            <span class="material-symbols-outlined text-sm text-primary-container">${slotIcons[slot]}</span>
+            <span class="text-xs font-mono uppercase text-on-surface-variant tracking-wider">${slotLabels[slot]}</span>
+            <span class="text-[10px] text-on-surface-variant/60">(${items.reduce((s, m) => s + m.calories, 0)} kcal)</span>
+          </div>`;
+
+          items.forEach(meal => {
+            totalCals += meal.calories;
+
+            const row = document.createElement('div');
+            row.className = "flex items-center justify-between p-3 bg-surface-container-high/40 hover:bg-surface-container-high transition-all rounded-xl border border-outline-variant/20 animate-slide-in group";
+            row.innerHTML = `
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary-container">
+                  <span class="material-symbols-outlined text-lg">restaurant</span>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-on-surface">${escapeHTML(meal.name)}</h4>
+                  <p class="text-[10px] text-on-surface-variant">${meal.time || 'Logged'}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="text-right">
+                  <p class="text-sm font-bold font-display-lg">${meal.calories} kcal</p>
+                </div>
+                <button onclick="deleteMeal(${meal.id})" class="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span class="material-symbols-outlined text-lg">delete</span>
+                </button>
+              </div>
+            `;
+            section.appendChild(row);
+          });
+          container.appendChild(section);
+        });
+
+        if (!hasMeals) {
+          container.innerHTML = `
+            <div class="text-center py-12 border border-dashed border-outline-variant/30 rounded-xl">
+              <span class="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-2">restaurant_menu</span>
+              <p class="text-sm text-on-surface-variant">No items logged for today.</p>
+            </div>`;
+        }
+
+        document.getElementById('caloriesTotalDisplay').innerText = totalCals;
+        document.getElementById('calorieGoalDisplay').textContent = `/ ${_goalCalories} KCAL`;
+
+        const circle = document.getElementById('calorieProgressRing');
+        const pct = Math.min(100, _goalCalories > 0 ? (totalCals / _goalCalories) * 100 : 0);
+        const circumference = 2 * Math.PI * 45;
+        circle.style.strokeDashoffset = circumference - (pct / 100) * circumference;
+
+        document.getElementById('calorieProgressBar').style.width = `${pct}%`;
+        document.getElementById('calorieProgressLabel').textContent = `${totalCals} / ${_goalCalories} kcal`;
+      }
+
+      async function handleMealSubmit(event) {
+        event.preventDefault();
+        const name = document.getElementById('mealName').value.trim();
+        const calories = parseInt(document.getElementById('mealCalories').value);
+        const mealSlot = document.getElementById('mealSlot').value;
+        const mealTime = document.getElementById('mealTime').value;
+
+        if (typeof NutriDB !== 'undefined' && NutriDB.addMeal) {
+          try {
+            await NutriDB.addMeal({ name, calories, mealSlot, mealTime });
+          } catch (err) {
+            alert('Failed to save meal: ' + err.message);
+            return;
+          }
+        }
+
+        const timeStr = mealTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        mealLogs.push({ id: Date.now(), name, calories, mealSlot, time: timeStr });
+        saveAndRender();
+
+        document.getElementById('mealName').value = '';
+        document.getElementById('mealCalories').value = '';
+        const _t = new Date();
+        document.getElementById('mealTime').value = `${String(_t.getHours()).padStart(2,'0')}:${String(_t.getMinutes()).padStart(2,'0')}`;
+      }
+
+      async function deleteMeal(id) {
+        if (typeof NutriDB !== 'undefined' && NutriDB.deleteMeal) {
+          try { await NutriDB.deleteMeal(id); } catch {}
+        }
+        mealLogs = mealLogs.filter(meal => meal.id !== id);
+        saveAndRender();
+      }
+
+      async function clearAllLogs() {
+        if (!confirm("Are you sure you want to purge all daily log records?")) return;
+        if (typeof NutriDB !== 'undefined' && NutriDB.getUser) {
+          try {
+            const user = await NutriDB.getUser();
+            if (user) {
+              const existing = await NutriDB.getTodayMeals();
+              for (const m of existing) {
+                await NutriDB.deleteMeal(m.id);
+              }
+            }
+          } catch {}
+        }
+        mealLogs = [];
+        saveAndRender();
+      }
+
+      function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g,
+          tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+      }
+
+      // AI state
+      let _aiBaseCalories = null;
+
+      // Image upload handlers
+      let _selectedFile = null;
+
+      document.getElementById('mealImage').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        _selectedFile = file;
+        document.getElementById('imageFileName').textContent = file.name;
+
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          document.getElementById('previewImg').src = ev.target.result;
+          document.getElementById('imagePreview').classList.remove('hidden');
+          document.getElementById('aiEstimateBtn').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // When servings changes, recalculate total from AI base
+      document.getElementById('mealServings').addEventListener('change', function() {
+        if (_aiBaseCalories) {
+          const servings = parseFloat(this.value) || 1;
+          document.getElementById('mealCalories').value = Math.round(_aiBaseCalories * servings);
+        }
+      });
+
+      // When user manually edits calories, clear AI base so servings doesn't auto-override
+      document.getElementById('mealCalories').addEventListener('input', function() {
+        _aiBaseCalories = null;
+      });
+
+      function clearImage() {
+        _selectedFile = null;
+        document.getElementById('mealImage').value = '';
+        document.getElementById('imageFileName').textContent = 'No file chosen';
+        document.getElementById('imagePreview').classList.add('hidden');
+        document.getElementById('aiEstimateBtn').classList.add('hidden');
+      }
+
+      function resizeImage(file, maxDim) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+              let w = img.width, h = img.height;
+              if (w > maxDim || h > maxDim) {
+                const ratio = Math.min(maxDim / w, maxDim / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function estimateFromImage() {
+        if (!_selectedFile) return;
+        const btn = document.getElementById('aiEstimateBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> Processing image...';
+
+        const compressedDataUrl = await resizeImage(_selectedFile, 1024);
+
+        btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> Analyzing with AI...';
+
+        const result = await NutriAIAgent.estimateCaloriesFromImage(compressedDataUrl);
+
+        btn.disabled = false;
+        if (result.calories && result.foodName) {
+          document.getElementById('mealName').value = result.foodName;
+          document.getElementById('mealCalories').value = result.calories;
+          _aiBaseCalories = result.calories;
+          document.getElementById('mealServings').value = 1;
+          btn.innerHTML = '<span class="material-symbols-outlined text-base">check_circle</span> Done! Review & Log';
+          btn.className = 'mt-3 w-full py-2 bg-green-500/20 border border-green-500/50 text-green-400 text-xs font-semibold rounded-lg flex items-center justify-center gap-2';
+          clearImage();
+        } else if (result.calories) {
+          document.getElementById('mealCalories').value = result.calories;
+          _aiBaseCalories = result.calories;
+          document.getElementById('mealServings').value = 1;
+          btn.innerHTML = '<span class="material-symbols-outlined text-base">check_circle</span> Calories filled! Add name & log';
+          btn.className = 'mt-3 w-full py-2 bg-green-500/20 border border-green-500/50 text-green-400 text-xs font-semibold rounded-lg flex items-center justify-center gap-2';
+          clearImage();
+        } else {
+          const errMsg = result.error || 'Could not identify food';
+          btn.innerHTML = `<span class="material-symbols-outlined text-base">error_outline</span> ${escapeHTML(errMsg)}`;
+          btn.className = 'mt-3 w-full py-2 bg-error/20 border border-error/50 text-error text-xs font-semibold rounded-lg flex items-center justify-center gap-2';
+          setTimeout(() => {
+            btn.innerHTML = '<span class="material-symbols-outlined text-base">auto_awesome</span> Estimate Calories with AI';
+            btn.className = 'mt-3 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2';
+          }, 5000);
+        }
+      }
+
+      async function estimateFromText() {
+        const desc = document.getElementById('foodDescription').value.trim();
+        if (!desc) return;
+        const btn = document.getElementById('textEstimateBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> Estimating...';
+
+        const result = await NutriAIAgent.estimateCaloriesFromText(desc);
+
+        btn.disabled = false;
+        if (result.calories && result.foodName) {
+          document.getElementById('mealName').value = result.foodName;
+          document.getElementById('mealCalories').value = result.calories;
+          _aiBaseCalories = result.calories;
+          document.getElementById('mealServings').value = 1;
+          document.getElementById('foodDescription').value = '';
+          btn.innerHTML = '<span class="material-symbols-outlined text-base">check_circle</span> Done! Review & Log';
+          btn.className = 'mt-2 w-full py-2 bg-green-500/20 border border-green-500/50 text-green-400 text-xs font-semibold rounded-lg flex items-center justify-center gap-2';
+          setTimeout(() => {
+            btn.innerHTML = '<span class="material-symbols-outlined text-base">auto_awesome</span> Estimate Calories from Description';
+            btn.className = 'mt-2 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2';
+          }, 3000);
+        } else {
+          btn.innerHTML = `<span class="material-symbols-outlined text-base">error_outline</span> ${escapeHTML(result.error || 'Could not estimate')}`;
+          btn.className = 'mt-2 w-full py-2 bg-error/20 border border-error/50 text-error text-xs font-semibold rounded-lg flex items-center justify-center gap-2';
+          setTimeout(() => {
+            btn.innerHTML = '<span class="material-symbols-outlined text-base">auto_awesome</span> Estimate Calories from Description';
+            btn.className = 'mt-2 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2';
+          }, 5000);
+        }
+      }
+
+      loadMeals();
+
+      // Set time input to current time on load
+      const _now = new Date();
+      document.getElementById('mealTime').value = `${String(_now.getHours()).padStart(2,'0')}:${String(_now.getMinutes()).padStart(2,'0')}`;
+
+      function toggleMobileMenu() {
+        const mobileMenu = document.getElementById('mobileMenu');
+        const menuIcon = document.getElementById('menuIcon');
+        if (mobileMenu.classList.contains('hidden')) {
+          mobileMenu.classList.remove('hidden');
+          menuIcon.innerText = 'close';
+        } else {
+          mobileMenu.classList.add('hidden');
+          menuIcon.innerText = 'menu';
+        }
+      }
+
+      let authMode = 'signin';
+
+      function openAuthModal() {
+        document.getElementById('authModal').classList.remove('hidden');
+        document.getElementById('authModal').classList.add('flex');
+      }
+
+      function closeAuthModal() {
+        document.getElementById('authModal').classList.add('hidden');
+        document.getElementById('authModal').classList.remove('flex');
+      }
+
+      function switchAuthTab(mode) {
+        authMode = mode;
+        const tabSignIn = document.getElementById('tabSignIn');
+        const tabSignUp = document.getElementById('tabSignUp');
+        const submitBtn = document.getElementById('authSubmitBtn');
+
+        if (mode === 'signin') {
+          tabSignIn.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all";
+          tabSignUp.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+          submitBtn.innerText = "Sign In";
+        } else {
+          tabSignUp.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary-container text-primary-container transition-all";
+          tabSignIn.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+          submitBtn.innerText = "Sign Up";
+        }
+      }
+
+      let _authLoading = false;
+
+      async function handleAuthSubmit(event) {
+        event.preventDefault();
+        if (_authLoading) return;
+        _authLoading = true;
+        const btn = document.getElementById('authSubmitBtn');
+        const originalText = btn.innerText;
+        btn.innerText = 'Processing...';
+        btn.disabled = true;
+
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+
+        try {
+          if (authMode === 'signin') {
+            await NutriDB.signIn(email, password);
+          } else {
+            await NutriDB.signUp(email, password);
+            alert('Account created! Check your email for a confirmation link, or sign in now.');
+            switchAuthTab('signin');
+            btn.innerText = originalText;
+            btn.disabled = false;
+            _authLoading = false;
+            return;
+          }
+          await updateAuthUI();
+          closeAuthModal();
+          await loadMeals();
+        } catch (err) {
+          alert(err.message || 'Auth error. Please try again.');
+        }
+        btn.innerText = originalText;
+        btn.disabled = false;
+        _authLoading = false;
+      }
+
+      async function signInWithSocial(provider) {
+        alert('Social sign-in requires OAuth setup in Supabase dashboard. Use email/password for now.');
+      }
+
+      async function signOutUser() {
+        try {
+          await NutriDB.signOut();
+          await updateAuthUI();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      async function updateAuthUI() {
+        const user = await NutriDB.getUser().catch(() => null);
+        const signInBtn = document.getElementById('signInBtn');
+        const userMenu = document.getElementById('userMenu');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        const userAvatar = document.getElementById('userAvatar');
+
+        if (user) {
+          if (signInBtn) signInBtn.classList.add('hidden');
+          if (userMenu) {
+            userMenu.classList.remove('hidden');
+            userMenu.classList.add('block');
+          }
+          if (userEmailDisplay) userEmailDisplay.innerText = user.email;
+          if (userAvatar) {
+            userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=ff7f50&color=0b1326`;
+          }
+        } else {
+          if (signInBtn) signInBtn.classList.remove('hidden');
+          if (userMenu) {
+            userMenu.classList.remove('block');
+            userMenu.classList.add('hidden');
+          }
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        await updateAuthUI();
+      });
+    </script>
+</body>
+</html>
