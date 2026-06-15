@@ -484,10 +484,6 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <div class="flex items-center gap-1.5 bg-surface-container-high border border-outline-variant/30 rounded-lg px-2 py-1">
-            <input type="text" id="apiKeyInput" placeholder="Groq API key" class="w-44 bg-transparent text-xs text-on-surface placeholder:text-on-surface-variant/40 border-0 outline-none p-0.5 font-mono">
-            <button onclick="saveApiKey()" class="text-[10px] px-1.5 py-0.5 bg-primary-container/20 text-primary-container rounded font-semibold hover:bg-primary-container/30 transition-colors">Save</button>
-          </div>
           <button onclick="refreshAgent()" class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded" title="Refresh Analysis">
             <span class="material-symbols-outlined text-lg">refresh</span>
           </button>
@@ -801,36 +797,11 @@
     await updateAuthUI();
     await loadDashboard();
     await checkQuestionnaire();
-    seedApiKeyInput();
 
     if (typeof NutriAIAgent !== 'undefined') {
       refreshAgent();
     }
   });
-
-  // ── API Key Management ──
-  function seedApiKeyInput() {
-    const saved = localStorage.getItem('nutriai_agent_config');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.apiKey) {
-        const input = document.getElementById('apiKeyInput');
-        if (input) input.value = parsed.apiKey;
-      }
-    }
-  }
-
-  function saveApiKey() {
-    const input = document.getElementById('apiKeyInput');
-    if (!input) return;
-    const key = input.value.trim();
-    NutriAIAgent.config.apiKey = key;
-    NutriAIAgent.saveConfig();
-    const btn = input.nextElementSibling;
-    const orig = btn.textContent;
-    btn.textContent = 'Saved!';
-    setTimeout(() => btn.textContent = orig, 1500);
-  }
 
   // ── Refresh Agent Analysis ──
   async function refreshAgent() {
