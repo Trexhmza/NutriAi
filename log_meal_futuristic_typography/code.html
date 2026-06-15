@@ -293,38 +293,42 @@
                             </div>
                         </div>
 
-                        <!-- Text description + AI estimation -->
-                        <div class="border-t border-outline-variant/30 pt-4 mt-2">
-                            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-2">Describe your meal for AI estimation</label>
-                            <textarea id="foodDescription" rows="2" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/40 resize-none" placeholder="e.g. a bowl of oatmeal with berries and a side of scrambled eggs"></textarea>
-                            <button type="button" id="textEstimateBtn" onclick="estimateFromText()" class="mt-2 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-base">auto_awesome</span>
-                                Estimate Calories from Description
-                            </button>
+                        <!-- AI Estimation (shown only when signed in) -->
+                        <div id="aiSection" class="hidden">
+                            <div class="border-t border-outline-variant/30 pt-4 mt-2">
+                                <label class="block text-xs font-mono uppercase text-on-surface-variant mb-2">Describe your meal for AI estimation</label>
+                                <textarea id="foodDescription" rows="2" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container rounded-lg px-4 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/40 resize-none" placeholder="e.g. a bowl of oatmeal with berries and a side of scrambled eggs"></textarea>
+                                <button type="button" id="textEstimateBtn" onclick="estimateFromText()" class="mt-2 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-base">auto_awesome</span>
+                                    Estimate Calories from Description
+                                </button>
+                            </div>
+                            <div class="border-t border-outline-variant/30 pt-4 mt-2">
+                                <label class="block text-xs font-mono uppercase text-on-surface-variant mb-2">Food Image (optional)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="file" id="mealImage" accept="image/*" class="hidden">
+                                    <button type="button" onclick="document.getElementById('mealImage').click()" class="flex items-center gap-2 px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
+                                        <span class="material-symbols-outlined text-base">image</span>
+                                        Choose Photo
+                                    </button>
+                                    <span id="imageFileName" class="text-xs text-on-surface-variant">No file chosen</span>
+                                </div>
+                                <div id="imagePreview" class="hidden mt-3 relative">
+                                    <img id="previewImg" class="w-full max-h-40 object-cover rounded-xl border border-outline-variant/50" alt="Food preview">
+                                    <button type="button" onclick="clearImage()" class="absolute top-2 right-2 w-7 h-7 bg-surface/80 rounded-full flex items-center justify-center text-on-surface hover:text-error transition-colors">
+                                        <span class="material-symbols-outlined text-sm">close</span>
+                                    </button>
+                                </div>
+                                <button type="button" id="aiEstimateBtn" onclick="estimateFromImage()" class="hidden mt-3 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined text-base">auto_awesome</span>
+                                    Estimate Calories with AI
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Image upload + AI estimation -->
-                        <div class="border-t border-outline-variant/30 pt-4 mt-2">
-                            <label class="block text-xs font-mono uppercase text-on-surface-variant mb-2">Food Image (optional)</label>
-                            <div class="flex items-center gap-2">
-                                <input type="file" id="mealImage" accept="image/*" class="hidden">
-                                <button type="button" onclick="document.getElementById('mealImage').click()" class="flex items-center gap-2 px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/50 rounded-lg text-xs font-semibold transition-all">
-                                    <span class="material-symbols-outlined text-base">image</span>
-                                    Choose Photo
-                                </button>
-                                <span id="imageFileName" class="text-xs text-on-surface-variant">No file chosen</span>
-                            </div>
-                            <!-- Image preview -->
-                            <div id="imagePreview" class="hidden mt-3 relative">
-                                <img id="previewImg" class="w-full max-h-40 object-cover rounded-xl border border-outline-variant/50" alt="Food preview">
-                                <button type="button" onclick="clearImage()" class="absolute top-2 right-2 w-7 h-7 bg-surface/80 rounded-full flex items-center justify-center text-on-surface hover:text-error transition-colors">
-                                    <span class="material-symbols-outlined text-sm">close</span>
-                                </button>
-                            </div>
-                            <button type="button" id="aiEstimateBtn" onclick="estimateFromImage()" class="hidden mt-3 w-full py-2 bg-secondary/20 border border-secondary/50 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-base">auto_awesome</span>
-                                Estimate Calories with AI
-                            </button>
+                        <!-- Sign-in prompt for AI (shown when not signed in) -->
+                        <div id="aiSignInPrompt" class="border-t border-outline-variant/30 pt-4 mt-2 text-center">
+                            <p class="text-xs text-on-surface-variant">Sign in to use AI-powered calorie estimation from text descriptions or food photos.</p>
                         </div>
 
                         <button type="submit" class="w-full py-3 bg-primary-container text-on-primary-fixed hover:brightness-110 text-sm font-semibold rounded-lg shadow transition-all duration-300 mt-4">
@@ -786,6 +790,8 @@
         const userMenu = document.getElementById('userMenu');
         const userEmailDisplay = document.getElementById('userEmailDisplay');
         const userAvatar = document.getElementById('userAvatar');
+        const aiSection = document.getElementById('aiSection');
+        const aiSignInPrompt = document.getElementById('aiSignInPrompt');
 
         if (user) {
           if (signInBtn) signInBtn.classList.add('hidden');
@@ -797,12 +803,16 @@
           if (userAvatar) {
             userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=ff7f50&color=0b1326`;
           }
+          if (aiSection) aiSection.classList.remove('hidden');
+          if (aiSignInPrompt) aiSignInPrompt.classList.add('hidden');
         } else {
           if (signInBtn) signInBtn.classList.remove('hidden');
           if (userMenu) {
             userMenu.classList.remove('block');
             userMenu.classList.add('hidden');
           }
+          if (aiSection) aiSection.classList.add('hidden');
+          if (aiSignInPrompt) aiSignInPrompt.classList.remove('hidden');
         }
       }
 
