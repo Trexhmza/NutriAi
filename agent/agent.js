@@ -1,13 +1,15 @@
+const NUTRIAI_GROQ_KEY = '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';
+
 const NutriAIAgent = {
   config: {
-    apiKey: ''
+    apiKey: NUTRIAI_GROQ_KEY
   },
 
   init() {
     const saved = localStorage.getItem('nutriai_agent_config');
     if (saved) {
       const parsed = JSON.parse(saved);
-      this.config.apiKey = parsed.apiKey || '';
+      this.config.apiKey = parsed.apiKey || NUTRIAI_GROQ_KEY;
     } else {
       this.saveConfig();
     }
