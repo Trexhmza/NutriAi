@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Log Meal — NutriAI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../supabase/db.js"></script>
+<script src="../agent/agent.js"></script>
+<script src="../shared/components.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+.material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:#12120f; }
+::-webkit-scrollbar-thumb { background:#444440; border-radius:10px; }
+@keyframes slideIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+.animate-slide-in { animation:slideIn 0.3s ease-out forwards; }
+</style>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode:"class",
+  theme:{
+    extend:{
+      colors:{
+        "surface":"#12120f","surface-dim":"#12120f","surface-bright":"#383834",
+        "surface-container-lowest":"#181814","surface-container-low":"#1e1e1a",
+        "surface-container":"#2c2c28","surface-container-high":"#383834","surface-container-highest":"#444440",
+        "on-surface":"#f0ece4","on-surface-variant":"#9e9488",
+        "outline":"#4a4440","outline-variant":"#3d3832","surface-tint":"#e8a87c",
+        "primary":"#e8a87c","on-primary":"#3d1f00","primary-container":"#d4834a","on-primary-container":"#4a2800",
+        "secondary":"#7ec8a0","on-secondary":"#00331e","secondary-container":"#3a9d6e","on-secondary-container":"#00331e",
+        "tertiary":"#b8a9e8","on-tertiary":"#1e0f4a","tertiary-container":"#8b7ac4","on-tertiary-container":"#1e0f4a",
+        "error":"#f28b82","on-error":"#601410","error-container":"#8c2a22","on-error-container":"#ffdad6",
+        "background":"#12120f","on-background":"#f0ece4","surface-variant":"#444440"
+      },
+      borderRadius:{ DEFAULT:"0.25rem", lg:"0.375rem", xl:"0.75rem", "2xl":"1rem", full:"9999px" },
+      fontFamily:{ "display":["Playfair Display"], "body":["Inter"], "mono":["JetBrains Mono"] }
+    }
+  }
+}
+</script>
+</head>
+<body class="bg-surface text-on-surface font-body overflow-x-hidden flex flex-col min-h-screen">
+
+<main class="flex-1 pt-28 pb-16 px-6">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="text-center md:text-left space-y-2 mb-8 animate-fade-in">
+      <span class="text-xs font-mono uppercase tracking-widest text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">Log Meal</span>
+      <h1 class="text-4xl font-bold font-display text-on-surface">Record Your Meal</h1>
+      <p class="text-sm text-on-surface-variant">Add what you ate. The ring updates instantly.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Left: Progress + Logged Items -->
+      <div class="lg:col-span-8 space-y-6">
+        <!-- Progress Card -->
+        <div class="bg-surface-container-low border border-outline-variant p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6">
+          <div class="relative w-36 h-36 flex-shrink-0">
+            <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" fill="none" r="42" stroke="#444440" stroke-width="8"/>
+              <circle id="calRing" cx="50" cy="50" fill="none" r="42" stroke="#e8a87c" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="263.89" stroke-dashoffset="263.89" style="transition:stroke-dashoffset 0.5s cubic-bezier(0.34,1.56,0.64,1)"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="totalDisplay" class="text-2xl font-bold font-display text-on-surface">0</span>
+              <span id="goalDisplay" class="text-[9px] font-mono text-on-surface-variant uppercase mt-0.5">/ 2,000</span>
+            </div>
+          </div>
+          <div class="flex-1 w-full space-y-2">
+            <h3 class="text-sm font-semibold uppercase font-mono text-on-surface-variant tracking-wider">Today's Progress</h3>
+            <div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+              <div id="calBar" class="h-full bg-gradient-to-r from-primary to-primary-container rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+            <p class="text-xs text-on-surface-variant text-right" id="progressLabel">0 / 2,000 kcal</p>
+          </div>
+        </div>
+
+        <!-- Logged Items -->
+        <div class="bg-surface-container-low border border-outline-variant p-6 rounded-2xl">
+          <div class="flex items-center justify-between border-b border-outline-variant/20 pb-4 mb-4">
+            <h3 class="text-lg font-bold font-display">Today's Log</h3>
+            <button onclick="clearAllLogs()" class="text-xs text-error font-mono uppercase hover:underline">Clear All</button>
+          </div>
+          <div id="mealsList" class="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+            <div class="text-center py-8"><span class="material-symbols-outlined text-3xl text-on-surface-variant/30">restaurant_menu</span><p class="text-xs text-on-surface-variant mt-2">No meals logged today</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Add Meal Form -->
+      <div class="lg:col-span-4 bg-surface-container-low border border-outline-variant p-6 rounded-2xl h-fit relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-primary opacity-[0.04] blur-3xl rounded-full"></div>
+        <h3 class="text-lg font-bold font-display mb-6 border-b border-outline-variant/20 pb-4">Add Meal</h3>
+        <form onsubmit="handleMealSubmit(event)" class="space-y-4">
+          <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Food</label><input type="text" id="mealName" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="e.g. Avocado Toast"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Calories</label><input type="number" id="mealCals" required min="1" max="5000" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface" placeholder="420"></div>
+            <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Servings</label><input type="number" id="mealServings" value="1" min="0.5" max="99" step="0.5" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Slot</label>
+              <select id="mealSlot" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface">
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+                <option value="snack">Snack</option>
+              </select>
+            </div>
+            <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Time</label><input type="time" id="mealTime" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface"></div>
+          </div>
+
+          <!-- AI Estimation -->
+          <div id="aiSection" class="hidden border-t border-outline-variant/20 pt-4 space-y-3">
+            <p class="text-xs font-mono uppercase text-on-surface-variant tracking-wider">AI Estimate</p>
+            <textarea id="foodDesc" rows="2" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40 resize-none" placeholder="Describe your meal... e.g. bowl of oatmeal with berries"></textarea>
+            <button type="button" onclick="estimateFromText()" class="w-full py-2.5 bg-secondary/20 border border-secondary/40 hover:bg-secondary/30 text-secondary text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-base">auto_awesome</span> AI Estimate
+            </button>
+          </div>
+          <div id="aiPrompt" class="border-t border-outline-variant/20 pt-4 text-center"><p class="text-xs text-on-surface-variant">Sign in to use AI calorie estimation.</p></div>
+
+          <button type="submit" class="w-full py-3 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-lg transition-all duration-300">Log Meal</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+NutriUI.init({ requireAuth: true });
+
+let _goalCals = 2000;
+let _meals = [];
+let _aiBase = null;
+
+document.addEventListener('nutri-ready', async () => {
+  document.getElementById('mealTime').value = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  await loadMeals();
+});
+
+async function loadMeals() {
+  try {
+    const g = await NutriDB.getUserGoals();
+    if (g && g.goalCalories) _goalCals = g.goalCalories;
+  } catch {}
+  try {
+    const data = await NutriDB.getTodayMeals();
+    _meals = (data || []).map(m => ({ id:m.id, name:m.name, calories:m.calories, mealSlot:m.meal_slot||'snack', time:m.meal_time ? new Date(m.meal_time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '' }));
+  } catch { _meals = []; }
+  renderAll();
+}
+
+function renderAll() {
+  const container = document.getElementById('mealsList');
+  container.innerHTML = '';
+  const slots = { breakfast:[], lunch:[], dinner:[], snack:[] };
+  const icons = { breakfast:'wb_sunny', lunch:'wb_cloudy', dinner:'nights_stay', snack:'cookie' };
+  let total = 0;
+  _meals.forEach(m => { (slots[m.mealSlot]||slots.snack).push(m); total += m.calories; });
+
+  let hasMeals = false;
+  Object.entries(slots).forEach(([slot, items]) => {
+    if (!items.length) return;
+    hasMeals = true;
+    const sec = document.createElement('div');
+    sec.className = 'space-y-1';
+    items.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-3 bg-surface-container-high/40 hover:bg-surface-container-high rounded-xl border border-outline-variant/10 transition-all group text-sm';
+      row.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-lg text-primary">${icons[slot]}</span>
+          <div><h4 class="text-sm font-semibold text-on-surface">${esc(m.name)}</h4><p class="text-[10px] text-on-surface-variant">${m.time||'Logged'}</p></div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="font-bold font-display text-on-surface">${m.calories}</span>
+          <button onclick="deleteMeal(${m.id})" class="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-lg">delete</span></button>
+        </div>`;
+      sec.appendChild(row);
+    });
+    container.appendChild(sec);
+  });
+
+  if (!hasMeals) {
+    container.innerHTML = `<div class="text-center py-8 border border-dashed border-outline-variant/20 rounded-xl"><span class="material-symbols-outlined text-3xl text-on-surface-variant/30">restaurant_menu</span><p class="text-xs text-on-surface-variant mt-2">No meals logged today</p></div>`;
+  }
+
+  document.getElementById('totalDisplay').textContent = total;
+  document.getElementById('goalDisplay').textContent = `/ ${_goalCals}`;
+  const pct = Math.min(100, _goalCals > 0 ? (total/_goalCals)*100 : 0);
+  const circ = 2 * Math.PI * 42;
+  document.getElementById('calRing').style.strokeDashoffset = circ - (pct/100)*circ;
+  document.getElementById('calBar').style.width = `${pct}%`;
+  document.getElementById('progressLabel').textContent = `${total} / ${_goalCals} kcal`;
+}
+
+async function handleMealSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById('mealName').value.trim();
+  const cals = parseInt(document.getElementById('mealCals').value);
+  const slot = document.getElementById('mealSlot').value;
+  const time = document.getElementById('mealTime').value;
+  try {
+    await NutriDB.addMeal({ name, calories:cals, mealSlot:slot, mealTime:time });
+  } catch (err) { alert('Failed: ' + err.message); return; }
+  _meals.push({ id:Date.now(), name, calories:cals, mealSlot:slot, time:time||new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) });
+  renderAll();
+  document.getElementById('mealName').value = '';
+  document.getElementById('mealCals').value = '';
+  document.getElementById('mealTime').value = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+async function deleteMeal(id) {
+  try { await NutriDB.deleteMeal(id); } catch {}
+  _meals = _meals.filter(m => m.id !== id);
+  renderAll();
+}
+
+async function clearAllLogs() {
+  if (!confirm('Clear all today\'s meals?')) return;
+  for (const m of _meals) { try { await NutriDB.deleteMeal(m.id); } catch {} }
+  _meals = [];
+  renderAll();
+}
+
+async function estimateFromText() {
+  const desc = document.getElementById('foodDesc').value.trim();
+  if (!desc) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> Estimating...';
+  const result = await NutriAIAgent.estimateCaloriesFromText(desc);
+  btn.disabled = false;
+  if (result.calories && result.foodName) {
+    document.getElementById('mealName').value = result.foodName;
+    document.getElementById('mealCals').value = result.calories;
+    _aiBase = result.calories;
+    document.getElementById('mealServings').value = 1;
+    document.getElementById('foodDesc').value = '';
+    btn.innerHTML = '<span class="material-symbols-outlined text-base">check_circle</span> Done! Review & Log';
+  } else {
+    btn.innerHTML = `<span class="material-symbols-outlined text-base">error_outline</span> ${esc(result.error||'Could not estimate')}`;
+    setTimeout(() => { btn.innerHTML = '<span class="material-symbols-outlined text-base">auto_awesome</span> AI Estimate'; }, 3000);
+  }
+}
+
+function esc(s) { return s.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t)); }
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await NutriUI.getUser();
+  const aiSec = document.getElementById('aiSection');
+  const aiPrompt = document.getElementById('aiPrompt');
+  if (user) { if (aiSec) aiSec.classList.remove('hidden'); if (aiPrompt) aiPrompt.classList.add('hidden'); }
+  else { if (aiSec) aiSec.classList.add('hidden'); if (aiPrompt) aiPrompt.classList.remove('hidden'); }
+});
+</script>
+
+</body>
+</html>

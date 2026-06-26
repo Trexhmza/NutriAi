@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard — NutriAI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../supabase/db.js"></script>
+<script src="../agent/agent.js"></script>
+<script src="../shared/components.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+.material-symbols-outlined { font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:#12120f; }
+::-webkit-scrollbar-thumb { background:#444440; border-radius:10px; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes slideIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+@keyframes confettiDrop { 0% { transform:translateY(-100px) rotate(0deg); opacity:1; } 100% { transform:translateY(600px) rotate(720deg); opacity:0; } }
+@keyframes bounceIn { 0% { transform:scale(0); } 50% { transform:scale(1.15); } 100% { transform:scale(1); } }
+.animate-fade-in { animation:fadeIn 0.5s ease-out forwards; }
+.animate-slide-in { animation:slideIn 0.3s ease-out forwards; }
+.animate-bounce-in { animation:bounceIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.heat-square { transition:all 0.2s; }
+.heat-square:hover { transform:scale(1.15); }
+.glow-ring { filter:drop-shadow(0 0 20px rgba(232,168,124,0.15)); }
+</style>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode:"class",
+  theme:{
+    extend:{
+      colors:{
+        "surface":"#12120f","surface-dim":"#12120f","surface-bright":"#383834",
+        "surface-container-lowest":"#181814","surface-container-low":"#1e1e1a",
+        "surface-container":"#2c2c28","surface-container-high":"#383834","surface-container-highest":"#444440",
+        "on-surface":"#f0ece4","on-surface-variant":"#9e9488",
+        "outline":"#4a4440","outline-variant":"#3d3832","surface-tint":"#e8a87c",
+        "primary":"#e8a87c","on-primary":"#3d1f00","primary-container":"#d4834a","on-primary-container":"#4a2800",
+        "secondary":"#7ec8a0","on-secondary":"#00331e","secondary-container":"#3a9d6e","on-secondary-container":"#00331e",
+        "tertiary":"#b8a9e8","on-tertiary":"#1e0f4a","tertiary-container":"#8b7ac4","on-tertiary-container":"#1e0f4a",
+        "error":"#f28b82","on-error":"#601410","error-container":"#8c2a22","on-error-container":"#ffdad6",
+        "background":"#12120f","on-background":"#f0ece4","surface-variant":"#444440"
+      },
+      borderRadius:{ DEFAULT:"0.25rem", lg:"0.375rem", xl:"0.75rem", "2xl":"1rem", full:"9999px" },
+      fontFamily:{ "display":["Playfair Display"], "body":["Inter"], "mono":["JetBrains Mono"] }
+    }
+  }
+}
+</script>
+</head>
+<body class="bg-surface text-on-surface font-body overflow-x-hidden flex flex-col min-h-screen">
+
+<main class="flex-1 pt-28 pb-16 px-6">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Streak Ribbon -->
+    <div id="streakBanner" class="hidden flex items-center justify-between bg-surface-container-low border border-outline-variant rounded-2xl p-4 mb-8 animate-fade-in">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🔥</span>
+        <div>
+          <span class="text-lg font-bold font-display text-on-surface" id="streakCount">0</span>
+          <span class="text-sm text-on-surface-variant">day streak</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+        <span id="dateDisplay"></span>
+        <span class="w-1.5 h-1.5 rounded-full bg-secondary" id="liveDot"></span>
+      </div>
+    </div>
+
+    <!-- Top Row: Ring + Quick Add -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+      
+      <!-- Calorie Ring -->
+      <div class="lg:col-span-5 bg-surface-container-low border border-outline-variant rounded-2xl p-8 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-48 h-48 bg-primary opacity-[0.04] blur-3xl rounded-full"></div>
+        <div class="flex flex-col items-center text-center">
+          <span class="text-xs font-mono uppercase tracking-wider text-on-surface-variant mb-4">Energy Balance</span>
+          <div class="relative w-48 h-48 glow-ring">
+            <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" fill="none" r="42" stroke="#444440" stroke-width="8"/>
+              <circle id="calRing" cx="50" cy="50" fill="none" r="42" stroke="#e8a87c" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="263.89" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.6s cubic-bezier(0.34,1.56,0.64,1);"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="ringRemaining" class="text-4xl font-bold font-display text-on-surface">--</span>
+              <span class="text-xs font-mono text-on-surface-variant mt-0.5">kcal remaining</span>
+            </div>
+          </div>
+          <div class="w-full mt-6">
+            <div class="flex justify-between text-xs text-on-surface-variant mb-1">
+              <span id="ringLogged">0 logged</span>
+              <span id="ringGoal">2,000 goal</span>
+            </div>
+            <div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+              <div id="calBar" class="h-full bg-gradient-to-r from-primary to-primary-container rounded-full transition-all duration-500" style="width:0%"></div>
+            </div>
+          </div>
+          <div id="goalCelebration" class="hidden mt-4 text-sm font-semibold text-secondary animate-bounce-in">🎯 Goal crushed today!</div>
+        </div>
+      </div>
+
+      <!-- Quick Add + Stats -->
+      <div class="lg:col-span-7 space-y-6">
+        <!-- Quick Add -->
+        <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-secondary opacity-[0.04] blur-3xl rounded-full"></div>
+          <h3 class="text-sm font-bold font-display text-on-surface mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-lg">add_circle</span>
+            Quick Log a Meal
+          </h3>
+          <form onsubmit="quickAddMeal(event)" class="flex flex-wrap gap-3">
+            <input type="text" id="qName" required placeholder="What did you eat?" class="flex-1 min-w-[180px] bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40">
+            <input type="number" id="qCals" required min="1" max="5000" placeholder="Calories" class="w-28 bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40">
+            <select id="qSlot" class="w-28 bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-xl px-4 py-2.5 text-sm text-on-surface">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+            </select>
+            <button type="submit" class="px-6 py-2.5 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-xl transition-all duration-300 flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-lg">add</span> Log
+            </button>
+          </form>
+        </div>
+
+        <!-- Today's Summary -->
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-surface-container-low border border-outline-variant p-4 rounded-xl text-center">
+            <span class="text-xs font-mono text-on-surface-variant uppercase">Logged</span>
+            <p class="text-2xl font-bold font-display text-on-surface mt-1" id="todayCalories">0</p>
+            <span class="text-xs text-on-surface-variant">kcal today</span>
+          </div>
+          <div class="bg-surface-container-low border border-outline-variant p-4 rounded-xl text-center border-primary/20">
+            <span class="text-xs font-mono text-on-surface-variant uppercase">Meals</span>
+            <p class="text-2xl font-bold font-display text-on-surface mt-1" id="todayMealCount">0</p>
+            <span class="text-xs text-on-surface-variant">logged</span>
+          </div>
+          <div class="bg-surface-container-low border border-outline-variant p-4 rounded-xl text-center border-secondary/20">
+            <span class="text-xs font-mono text-on-surface-variant uppercase">Streak</span>
+            <p class="text-2xl font-bold font-display text-secondary mt-1" id="streakNum">0</p>
+            <span class="text-xs text-on-surface-variant">days</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Heat Calendar + Today's Log + Agent -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+
+      <!-- Weekly Heat Calendar -->
+      <div class="lg:col-span-5 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold font-display text-on-surface">This Week</h3>
+          <div class="flex items-center gap-3 text-[10px] font-mono text-on-surface-variant">
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-secondary"></span> Met</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-primary/50"></span> Logged</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-surface-container-highest"></span> Missed</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-7 gap-2 mb-4" id="heatGrid">
+          <div class="text-center text-[10px] font-mono text-on-surface-variant pb-1">Mon</div>
+          <div class="text-center text-[10px] font-mono text-on-surface-variant pb-1">Tue</div>
+          <div class="text-center text-[10px] font-mono text-on-surface-variant pb-1">Wed</div>
+          <div class="text-center text-[10px] font-mono text-on-surface-variant pb-1">Thu</div>
+          <div class="text-center text-[10px] font-mono text-on-surface-variant pb-1">Fri</div>
+          <div class="text-center text-[10px] font-mono text-on-surface-variant pb-1">Sat</div>
+          <div class="text-center text-[10px] font-mono text-on-surface-variant pb-1">Sun</div>
+        </div>
+        <div id="heatEmpty" class="text-center py-8">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant/30">calendar_view_week</span>
+          <p class="text-xs text-on-surface-variant mt-2">Log meals to see your weekly heatmap</p>
+        </div>
+        <!-- Today's meals list (quick view) -->
+        <div id="todayMealsList" class="space-y-2 max-h-[200px] overflow-y-auto mt-4 pt-4 border-t border-outline-variant/20">
+          <div class="text-center py-6">
+            <span class="material-symbols-outlined text-2xl text-on-surface-variant/30">restaurant_menu</span>
+            <p class="text-xs text-on-surface-variant mt-1">No meals logged today</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Panel -->
+      <div class="lg:col-span-7 bg-surface-container-low border border-outline-variant rounded-2xl p-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-48 h-48 bg-tertiary opacity-[0.04] blur-3xl rounded-full"></div>
+        <div class="flex items-center justify-between border-b border-outline-variant/20 pb-4 mb-4">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-3xl text-tertiary">psychology</span>
+            <div>
+              <h3 class="text-lg font-bold font-display text-on-surface">AI Coach</h3>
+              <p class="text-xs text-on-surface-variant">Personalized nutrition insight</p>
+            </div>
+          </div>
+          <button onclick="refreshAgent()" class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded" title="Refresh">
+            <span class="material-symbols-outlined text-lg">refresh</span>
+          </button>
+        </div>
+        <div id="agentLoading" class="text-center py-8">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant/40 animate-spin">sync</span>
+          <p class="text-xs text-on-surface-variant mt-2">Generating your analysis...</p>
+        </div>
+        <div id="agentContent" class="hidden space-y-4">
+          <div id="agentText" class="text-sm text-on-surface leading-relaxed"></div>
+          <div id="agentQuote" class="text-sm text-secondary italic border-t border-outline-variant/20 pt-4 mt-4"></div>
+        </div>
+        <div id="agentSetup" class="hidden text-center py-8">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant/30">edit_note</span>
+          <p class="text-sm text-on-surface-variant mt-2">Complete your profile to unlock AI analysis.</p>
+          <button onclick="NutriUI.openQuestionnaire()" class="mt-4 px-6 py-2.5 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-full transition-all">Set Up Profile</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Questionnaire Modal -->
+<div id="questionnaireModal" class="fixed inset-0 bg-background/80 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
+  <div class="bg-surface-container border border-outline-variant w-full max-w-lg rounded-2xl p-8 relative shadow-2xl">
+    <button onclick="NutriUI.closeQuestionnaire()" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined">close</span></button>
+    <div class="text-center mb-6">
+      <span class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-4">
+        <span class="material-symbols-outlined text-3xl">insights</span>
+      </span>
+      <h2 class="text-2xl font-bold font-display text-on-surface mb-2">Welcome to NutriAI</h2>
+      <p class="text-sm text-on-surface-variant">Tell us about yourself so we can calculate your daily calorie target.</p>
+    </div>
+    <form id="questionnaireForm" onsubmit="handleQuestionnaireSubmit(event)" class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Age</label><input type="number" id="qAge" required min="10" max="120" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface" placeholder="25"></div>
+        <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Gender</label>
+          <select id="qGender" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface">
+            <option value="male">Male</option><option value="female">Female</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Height (cm)</label><input type="number" id="qHeight" required min="100" max="250" step="0.1" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface" placeholder="175"></div>
+        <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Weight (kg)</label><input type="number" id="qWeight" required min="20" max="300" step="0.1" class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface" placeholder="70"></div>
+      </div>
+      <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Activity Level</label>
+        <select id="qActivity" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface">
+          <option value="sedentary">Sedentary (desk job, no exercise)</option>
+          <option value="light">Light (1-3 days/week)</option>
+          <option value="moderate">Moderate (3-5 days/week)</option>
+          <option value="active">Active (6-7 days/week)</option>
+          <option value="very_active">Very Active (athlete / physical job)</option>
+        </select>
+      </div>
+      <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Your Goal</label>
+        <div class="grid grid-cols-3 gap-3">
+          <label class="flex flex-col items-center p-3 bg-surface-container-lowest border border-outline-variant hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5 rounded-xl cursor-pointer transition-all">
+            <input type="radio" name="qGoal" value="lose" class="hidden" checked>
+            <span class="text-2xl mb-1">🔥</span>
+            <span class="text-xs font-semibold text-on-surface">Lose</span>
+          </label>
+          <label class="flex flex-col items-center p-3 bg-surface-container-lowest border border-outline-variant hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5 rounded-xl cursor-pointer transition-all">
+            <input type="radio" name="qGoal" value="maintain" class="hidden">
+            <span class="text-2xl mb-1">⚖️</span>
+            <span class="text-xs font-semibold text-on-surface">Maintain</span>
+          </label>
+          <label class="flex flex-col items-center p-3 bg-surface-container-lowest border border-outline-variant hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5 rounded-xl cursor-pointer transition-all">
+            <input type="radio" name="qGoal" value="gain" class="hidden">
+            <span class="text-2xl mb-1">💪</span>
+            <span class="text-xs font-semibold text-on-surface">Gain</span>
+          </label>
+        </div>
+      </div>
+      <button type="submit" class="w-full py-3 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-lg transition-all duration-300 mt-2">Calculate My Target</button>
+    </form>
+  </div>
+</div>
+
+<script>
+NutriUI.init({ requireAuth: true });
+
+// ── State ──
+let _goalCalories = 2000;
+let _todayMeals = [];
+
+// ── Init ──
+document.addEventListener('nutri-ready', async () => {
+  await loadDashboard();
+  await checkAndShowQuestionnaire();
+});
+
+async function loadDashboard() {
+  const user = await NutriUI.getUser();
+  if (!user) return;
+  const goals = await NutriDB.getUserGoals().catch(() => null);
+  if (goals && goals.goalCalories) _goalCalories = goals.goalCalories;
+  _todayMeals = await NutriDB.getTodayMeals().catch(() => []);
+  renderDashboard();
+  renderHeatCalendar();
+  renderTodayMeals();
+  updateStreak();
+  updateDateDisplay();
+}
+
+function renderDashboard() {
+  const totalCals = _todayMeals.reduce((s, m) => s + (m.calories || 0), 0);
+  const remaining = Math.max(0, _goalCalories - totalCals);
+  const pct = Math.min((totalCals / _goalCalories) * 100, 100);
+
+  document.getElementById('ringRemaining').textContent = remaining.toLocaleString();
+  document.getElementById('ringLogged').textContent = `${totalCals.toLocaleString()} logged`;
+  document.getElementById('ringGoal').textContent = `${_goalCalories.toLocaleString()} goal`;
+  document.getElementById('todayCalories').textContent = totalCals.toLocaleString();
+  document.getElementById('todayMealCount').textContent = _todayMeals.length;
+
+  const circumference = 2 * Math.PI * 42;
+  const ring = document.getElementById('calRing');
+  ring.style.strokeDashoffset = circumference - (pct / 100) * circumference;
+  document.getElementById('calBar').style.width = `${pct}%`;
+
+  const cel = document.getElementById('goalCelebration');
+  if (totalCals >= _goalCalories) {
+    cel.classList.remove('hidden');
+    launchConfetti();
+  } else {
+    cel.classList.add('hidden');
+  }
+}
+
+function updateDateDisplay() {
+  const now = new Date();
+  document.getElementById('dateDisplay').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+async function updateStreak() {
+  const user = await NutriUI.getUser();
+  if (!user) { document.getElementById('streakNum').textContent = '0'; return; }
+  try {
+    const meals = await NutriDB.getMeals();
+    const daySet = new Set();
+    meals.forEach(m => {
+      if (m.meal_time) daySet.add(new Date(m.meal_time).toDateString());
+    });
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      if (daySet.has(d.toDateString())) streak++;
+      else if (i > 0) break;
+    }
+    document.getElementById('streakCount').textContent = streak;
+    document.getElementById('streakNum').textContent = streak;
+    const banner = document.getElementById('streakBanner');
+    if (streak > 0) { banner.classList.remove('hidden'); banner.classList.add('flex'); }
+    else { banner.classList.add('hidden'); }
+  } catch { document.getElementById('streakNum').textContent = '0'; }
+}
+
+async function renderHeatCalendar() {
+  const user = await NutriUI.getUser();
+  if (!user) return;
+  try {
+    const weekDays = await NutriDB.getWeekMeals();
+    const hasAny = weekDays.some(d => d.hasMeals);
+    if (!hasAny) return;
+    document.getElementById('heatEmpty').classList.add('hidden');
+    const grid = document.getElementById('heatGrid');
+    const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    grid.innerHTML = '';
+    dayNames.forEach(name => {
+      const h = document.createElement('div');
+      h.className = 'text-center text-[10px] font-mono text-on-surface-variant pb-2';
+      h.textContent = name;
+      grid.appendChild(h);
+    });
+    const todayDow = new Date().getDay();
+    const ordered = [];
+    for (let i = 0; i < 7; i++) {
+      const idx = (todayDow + i) % 7;
+      ordered.push(weekDays.find(d => d.dayOfWeek === idx));
+    }
+    ordered.forEach(d => {
+      const div = document.createElement('div');
+      div.className = 'heat-square aspect-square rounded-xl flex items-center justify-center text-xs font-bold font-display';
+      if (d && d.hasMeals && d.totalCalories >= _goalCalories) {
+        div.className += ' bg-secondary text-on-secondary cursor-pointer';
+        div.title = `${dayNames[d.dayOfWeek]}: ${d.totalCalories} kcal ✓ achieved`;
+      } else if (d && d.hasMeals) {
+        div.className += ' bg-primary/50 text-on-primary-fixed cursor-pointer';
+        div.title = `${dayNames[d.dayOfWeek]}: ${d.totalCalories}/${_goalCalories} kcal`;
+      } else {
+        div.className += ' bg-surface-container-highest text-on-surface-variant/30';
+        div.title = `${dayNames[d ? d.dayOfWeek : 0]}: no meals`;
+      }
+      div.textContent = d && d.hasMeals ? (d.totalCalories >= _goalCalories ? '✓' : '·') : '·';
+      grid.appendChild(div);
+    });
+  } catch {}
+}
+
+function renderTodayMeals() {
+  const container = document.getElementById('todayMealsList');
+  container.innerHTML = '';
+  if (_todayMeals.length === 0) {
+    container.innerHTML = `<div class="text-center py-4"><span class="material-symbols-outlined text-2xl text-on-surface-variant/30">restaurant_menu</span><p class="text-xs text-on-surface-variant mt-1">No meals logged today</p></div>`;
+    return;
+  }
+  const slots = { breakfast:[], lunch:[], dinner:[], snack:[] };
+  const slotIcons = { breakfast:'wb_sunny', lunch:'wb_cloudy', dinner:'nights_stay', snack:'cookie' };
+  _todayMeals.forEach(m => { (slots[m.meal_slot] || slots.snack).push(m); });
+  Object.entries(slots).forEach(([slot, meals]) => {
+    if (!meals.length) return;
+    const section = document.createElement('div');
+    section.className = 'space-y-1';
+    meals.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2.5 bg-surface-container-high/40 rounded-xl border border-outline-variant/10 animate-slide-in text-sm';
+      const time = m.meal_time ? new Date(m.meal_time).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '';
+      row.innerHTML = `
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-base text-primary">${slotIcons[slot]}</span>
+          <span class="text-sm text-on-surface">${escapeHtml(m.name)}</span>
+          <span class="text-[10px] text-on-surface-variant">${time}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-bold font-display text-on-surface">${m.calories}</span>
+          <button onclick="deleteMeal(${m.id})" class="text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-base">delete</span></button>
+        </div>`;
+      section.appendChild(row);
+    });
+    container.appendChild(section);
+  });
+}
+
+async function quickAddMeal(event) {
+  event.preventDefault();
+  const name = document.getElementById('qName').value.trim();
+  const calories = parseInt(document.getElementById('qCals').value);
+  const mealSlot = document.getElementById('qSlot').value;
+  if (!name || !calories) return;
+  try {
+    await NutriDB.addMeal({ name, calories, mealSlot, mealTime: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) });
+    document.getElementById('qName').value = '';
+    document.getElementById('qCals').value = '';
+    await loadDashboard();
+    if (typeof refreshAgent === 'function') refreshAgent();
+  } catch (err) {
+    alert('Failed to save: ' + err.message);
+  }
+}
+
+async function deleteMeal(id) {
+  if (typeof NutriDB !== 'undefined' && NutriDB.deleteMeal) {
+    try { await NutriDB.deleteMeal(id); } catch {}
+  }
+  await loadDashboard();
+  if (typeof refreshAgent === 'function') refreshAgent();
+}
+
+async function checkAndShowQuestionnaire() {
+  const user = await NutriUI.getUser();
+  if (!user) return;
+  const has = await NutriUI.hasGoals();
+  if (!has) {
+    setTimeout(() => NutriUI.openQuestionnaire(), 600);
+  }
+}
+
+async function handleQuestionnaireSubmit(event) {
+  event.preventDefault();
+  const btn = event.submitter || document.querySelector('#questionnaireForm button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Calculating...';
+  try {
+    const data = {
+      age: parseInt(document.getElementById('qAge').value),
+      gender: document.getElementById('qGender').value,
+      heightCm: parseFloat(document.getElementById('qHeight').value),
+      weightKg: parseFloat(document.getElementById('qWeight').value),
+      activityLevel: document.getElementById('qActivity').value,
+      goal: document.querySelector('input[name="qGoal"]:checked').value
+    };
+    await NutriDB.saveUserGoals(data);
+    NutriUI.closeQuestionnaire();
+    await loadDashboard();
+    if (typeof refreshAgent === 'function') refreshAgent();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Calculate My Target';
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t));
+}
+
+// ── Agent ──
+async function refreshAgent() {
+  const loading = document.getElementById('agentLoading');
+  const content = document.getElementById('agentContent');
+  const textEl = document.getElementById('agentText');
+  const quoteEl = document.getElementById('agentQuote');
+  const setup = document.getElementById('agentSetup');
+  loading.classList.remove('hidden');
+  content.classList.add('hidden');
+  setup.classList.add('hidden');
+  await new Promise(r => setTimeout(r, 200));
+  try {
+    const user = await NutriUI.getUser();
+    if (!user) { loading.classList.add('hidden'); setup.classList.remove('hidden'); return; }
+    const goals = await NutriDB.getUserGoals().catch(() => null);
+    const meals = await NutriDB.getTodayMeals().catch(() => []);
+    if (!goals || !goals.goalCalories) { loading.classList.add('hidden'); setup.classList.remove('hidden'); return; }
+    const result = await NutriAIAgent.generateAnalysis(goals, meals, []);
+    loading.classList.add('hidden');
+    content.classList.remove('hidden');
+    textEl.textContent = result.analysis || 'No analysis returned.';
+    if (result.quote) { quoteEl.textContent = result.quote; quoteEl.classList.remove('hidden'); }
+    else { quoteEl.classList.add('hidden'); }
+  } catch (err) {
+    loading.classList.add('hidden');
+    content.classList.remove('hidden');
+    textEl.innerHTML = `<span class="text-error">Analysis error: ${err.message}</span>`;
+  }
+}
+
+// ── Confetti ──
+function launchConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.className = 'fixed inset-0 pointer-events-none z-50';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const colors = ['#e8a87c','#d4834a','#7ec8a0','#b8a9e8','#f0ece4'];
+  const particles = Array.from({length:80}, () => ({
+    x: Math.random() * canvas.width,
+    y: -20,
+    w: 6 + Math.random() * 6,
+    h: 4 + Math.random() * 4,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    vx: (Math.random() - 0.5) * 4,
+    vy: 2 + Math.random() * 4,
+    rot: Math.random() * 360,
+    rotV: (Math.random() - 0.5) * 10
+  }));
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.rotV;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 120) requestAnimationFrame(animate);
+    else { canvas.remove(); }
+  }
+  animate();
+}
+</script>
+
+</body>
+</html>

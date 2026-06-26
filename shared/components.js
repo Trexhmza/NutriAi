@@ -1,0 +1,266 @@
+const NutriUI = {
+  config: {
+    requireAuth: false,
+    currentPage: 'home'
+  },
+
+  init(opts = {}) {
+    Object.assign(this.config, opts);
+    this.detectPage();
+    this.injectHeader();
+    this.injectAuthModal();
+    this.injectFooter();
+    document.addEventListener('DOMContentLoaded', () => this.onReady());
+  },
+
+  detectPage() {
+    const p = window.location.pathname.replace(/\/+$/, '');
+    if (p.endsWith('/dashboard')) this.config.currentPage = 'dashboard';
+    else if (p.endsWith('/log')) this.config.currentPage = 'log';
+    else if (p.endsWith('/weight')) this.config.currentPage = 'weight';
+    else if (p.endsWith('/bmi')) this.config.currentPage = 'bmi';
+    else if (p.endsWith('/contact')) this.config.currentPage = 'contact';
+    else this.config.currentPage = 'home';
+  },
+
+  p(rel) {
+    const depth = this.config.currentPage === 'home' ? '.' : '..';
+    return `${depth}/${rel}`;
+  },
+
+  async onReady() {
+    this.updateActiveNav();
+    await this.updateAuthUI();
+    if (this.config.requireAuth) {
+      const user = await this.getUser();
+      if (!user) { window.location.href = this.p('index.html'); return; }
+    }
+    if (this.config.currentPage === 'home') {
+      const user = await this.getUser();
+      if (user) { window.location.href = './dashboard/'; return; }
+    }
+    document.dispatchEvent(new Event('nutri-ready'));
+  },
+
+  injectHeader() {
+    const cp = this.config.currentPage;
+    const items = [
+      { id:'home', label:'Home', href: cp==='home' ? '#' : this.p('index.html') },
+      { id:'dashboard', label:'Dashboard', href: this.p('dashboard/'), auth:true },
+      { id:'log', label:'Log Meal', href: this.p('log/'), auth:true },
+      { id:'bmi', label:'BMI', href: this.p('bmi/') },
+      { id:'weight', label:'Weight', href: this.p('weight/'), auth:true },
+      { id:'contact', label:'Contact', href: this.p('contact/') }
+    ];
+    const nav = items.map(i =>
+      `<a href="${i.href}" data-page="${i.id}" class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors py-2 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary':''}">${i.label}</a>`
+    ).join('');
+    const navM = items.map(i =>
+      `<a href="${i.href}" class="text-lg font-medium text-on-surface-variant hover:text-primary transition-colors py-2 pl-3 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-l-4 border-primary':''}">${i.label}</a>`
+    ).join('');
+
+    const h = `<header class="fixed top-0 left-0 right-0 h-20 bg-surface-container/80 backdrop-blur-xl border-b border-outline-variant/20 z-50">
+      <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+        <a href="${cp==='home'?'#':this.p('index.html')}" class="flex items-center gap-2 group">
+          <span class="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">insights</span>
+          <span class="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent">NutriAI</span>
+        </a>
+        <nav class="hidden md:flex items-center gap-6">${nav}
+          <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ml-2">Sign In</button>
+          <div id="userMenu" class="hidden relative ml-2">
+            <button class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
+            <div class="absolute right-0 mt-2 w-48 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden group-hover:block z-50">
+              <p id="userEmailDisplay" class="text-xs text-on-surface-variant px-3 py-1 truncate"></p>
+              <hr class="border-outline-variant/30 my-1"/>
+              <button onclick="NutriUI.signOut()" class="w-full text-left text-xs hover:bg-surface-container hover:text-error px-3 py-2 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">logout</span> Sign Out</button>
+            </div>
+          </div>
+        </nav>
+        <div class="flex md:hidden items-center gap-3">
+          <button onclick="NutriUI.openAuthModal()" id="signInBtnMob" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-4 py-1.5 rounded-full text-xs font-semibold transition-all">Sign In</button>
+          <div id="userMenuMob" class="hidden"><button class="w-9 h-9 rounded-full border border-primary overflow-hidden"><img id="userAvatarMob" alt="" class="w-full h-full object-cover"></button></div>
+          <button onclick="NutriUI.toggleMobileMenu()" class="text-on-surface hover:text-primary"><span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span></button>
+        </div>
+      </div>
+      <div id="mobileMenu" class="hidden md:hidden absolute top-20 left-0 right-0 bg-surface border-b border-outline-variant/50 flex flex-col p-6 space-y-4 shadow-xl z-40 animate-fade-in">${navM}</div>
+    </header>`;
+    document.body.insertAdjacentHTML('afterbegin', h);
+  },
+
+  injectFooter() {
+    const f = `<footer class="bg-surface-container/20 border-t border-outline-variant/20 py-12 mt-auto">
+      <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="text-sm text-on-surface-variant font-medium">© 2026 NutriAI — All rights reserved</div>
+        <div class="flex flex-wrap justify-center gap-6 text-sm text-on-surface-variant font-medium">
+          <a href="#" class="hover:text-primary transition-colors">Privacy Policy</a>
+          <a href="#" class="hover:text-primary transition-colors">Terms of Service</a>
+          <a href="${this.p('contact/')}" class="hover:text-primary transition-colors">Contact</a>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          </a>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 hover:scale-105 transition-all">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </div>
+    </footer>`;
+    document.body.insertAdjacentHTML('beforeend', f);
+  },
+
+  injectAuthModal() {
+    const m = `<div id="authModal" class="fixed inset-0 bg-background/80 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
+      <div class="bg-surface-container border border-outline-variant w-full max-w-md rounded-2xl p-8 relative shadow-2xl">
+        <button onclick="NutriUI.closeAuthModal()" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined">close</span></button>
+        <div class="text-center mb-6">
+          <h2 class="text-2xl font-bold font-display text-on-surface mb-2">Welcome to NutriAI</h2>
+          <p class="text-sm text-on-surface-variant">Sign in or create your account</p>
+        </div>
+        <div class="flex border-b border-outline-variant/30 mb-6">
+          <button id="tabSignIn" onclick="NutriUI.switchAuthTab('signin')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-primary text-primary transition-all">Sign In</button>
+          <button id="tabSignUp" onclick="NutriUI.switchAuthTab('signup')" class="flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all">Sign Up</button>
+        </div>
+        <form id="authForm" onsubmit="NutriUI.handleAuthSubmit(event)" class="space-y-4">
+          <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Email</label><input type="email" id="authEmail" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="name@domain.com"></div>
+          <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Password</label><input type="password" id="authPassword" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="••••••••"></div>
+          <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-lg transition-all duration-300">Sign In</button>
+        </form>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', m);
+  },
+
+  authMode: 'signin',
+  _authLoading: false,
+
+  toggleMobileMenu() {
+    const m = document.getElementById('mobileMenu');
+    const i = document.getElementById('menuIcon');
+    if (!m || !i) return;
+    if (m.classList.contains('hidden')) { m.classList.remove('hidden'); i.textContent = 'close'; }
+    else { m.classList.add('hidden'); i.textContent = 'menu'; }
+  },
+
+  openAuthModal() {
+    const m = document.getElementById('authModal');
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+  },
+  closeAuthModal() {
+    const m = document.getElementById('authModal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+  },
+  switchAuthTab(mode) {
+    this.authMode = mode;
+    const si = document.getElementById('tabSignIn');
+    const su = document.getElementById('tabSignUp');
+    const btn = document.getElementById('authSubmitBtn');
+    if (!si || !su || !btn) return;
+    if (mode === 'signin') {
+      si.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary text-primary transition-all";
+      su.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+      btn.textContent = "Sign In";
+    } else {
+      su.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-primary text-primary transition-all";
+      si.className = "flex-1 pb-2 text-sm font-semibold border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-all";
+      btn.textContent = "Sign Up";
+    }
+  },
+
+  async handleAuthSubmit(event) {
+    event.preventDefault();
+    if (this._authLoading) return;
+    this._authLoading = true;
+    const btn = document.getElementById('authSubmitBtn');
+    const orig = btn.textContent;
+    btn.textContent = 'Processing...';
+    btn.disabled = true;
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    try {
+      if (this.authMode === 'signin') {
+        await NutriDB.signIn(email, password);
+      } else {
+        await NutriDB.signUp(email, password);
+        alert('Account created! Check your email to confirm.');
+        this.switchAuthTab('signin');
+        btn.textContent = orig; btn.disabled = false; this._authLoading = false;
+        return;
+      }
+      await this.updateAuthUI();
+      this.closeAuthModal();
+      window.location.href = this.p('dashboard/');
+    } catch (err) {
+      alert(err.message || 'Auth error');
+    }
+    btn.textContent = orig;
+    btn.disabled = false;
+    this._authLoading = false;
+  },
+
+  async signOut() {
+    try { await NutriDB.signOut(); this.updateAuthUI(); window.location.href = this.p('index.html'); }
+    catch (err) { alert(err.message); }
+  },
+
+  async getUser() {
+    try { return await NutriDB.getUser(); }
+    catch { return null; }
+  },
+
+  async updateAuthUI() {
+    const user = await this.getUser();
+    const sb = document.getElementById('signInBtn');
+    const sm = document.getElementById('signInBtnMob');
+    const um = document.getElementById('userMenu');
+    const umm = document.getElementById('userMenuMob');
+    const ue = document.getElementById('userEmailDisplay');
+    const ua = document.getElementById('userAvatar');
+    const uam = document.getElementById('userAvatarMob');
+    document.querySelectorAll('.auth-gated').forEach(el => el.classList.toggle('hidden', !user));
+    if (user) {
+      if (sb) sb.classList.add('hidden');
+      if (sm) sm.classList.add('hidden');
+      if (um) { um.classList.remove('hidden'); um.classList.add('block'); }
+      if (umm) { umm.classList.remove('hidden'); umm.classList.add('block'); }
+      if (ue) ue.textContent = user.email;
+      const src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=d4834a&color=12120f`;
+      if (ua) ua.src = src;
+      if (uam) uam.src = src;
+    } else {
+      if (sb) sb.classList.remove('hidden');
+      if (sm) sm.classList.remove('hidden');
+      if (um) { um.classList.remove('block'); um.classList.add('hidden'); }
+      if (umm) { umm.classList.remove('block'); umm.classList.add('hidden'); }
+    }
+  },
+
+  updateActiveNav() {
+    const cp = this.config.currentPage;
+    document.querySelectorAll('[data-page]').forEach(el => {
+      if (el.dataset.page === cp) {
+        el.classList.add('text-primary', 'font-semibold', 'border-b-2', 'border-primary');
+        el.classList.remove('text-on-surface-variant');
+      }
+    });
+  },
+
+  async hasGoals() {
+    try {
+      const g = await NutriDB.getUserGoals();
+      return !!(g && g.goalCalories);
+    } catch { return false; }
+  },
+
+  openQuestionnaire() {
+    const m = document.getElementById('questionnaireModal');
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+  },
+  closeQuestionnaire() {
+    const m = document.getElementById('questionnaireModal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+  }
+};
