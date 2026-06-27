@@ -29,8 +29,8 @@ const NutriUI = {
   },
 
   async onReady() {
-    this.updateActiveNav();
     await this.updateAuthUI();
+    this.positionLamp();
     if (this.config.requireAuth) {
       const user = await this.getUser();
       if (!user) { window.location.href = this.p('index.html'); return; }
@@ -42,15 +42,38 @@ const NutriUI = {
         dd.classList.add('hidden');
       }
     });
+    window.addEventListener('resize', () => this.positionLamp());
     document.dispatchEvent(new Event('nutri-ready'));
   },
 
   injectHeader() {
     const s = document.createElement('style');
     s.textContent = `
-      .nav-link{position:relative;transition:color 0.3s}
-      .nav-link::after{content:'';position:absolute;bottom:-1px;left:50%;width:0;height:2px;background:#e8a87c;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);transform:translateX(-50%);border-radius:2px;opacity:0}
-      .nav-link:hover::after{width:80%;opacity:1}
+      .top-bar{position:fixed;top:0;left:0;right:0;z-index:51;background:transparent;height:3.5rem}
+      .top-bar-inner{max-width:80rem;margin:0 auto;padding:0 1.5rem;width:100%;height:100%;display:flex;align-items:center;justify-content:space-between}
+      .pill-wrap{position:fixed;left:50%;z-index:50;transform:translateX(-50%);pointer-events:none}
+      .pill-bar{display:inline-flex;align-items:center;gap:0.25rem;background:rgba(30,30,26,0.65);border:1px solid rgba(61,56,50,0.35);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:0.25rem;border-radius:9999px;box-shadow:0 4px 30px rgba(0,0,0,0.35);pointer-events:auto}
+      .pill-item{position:relative;cursor:pointer;font-size:0.875rem;font-weight:600;padding:0.5rem 1.5rem;border-radius:9999px;transition:color 0.3s;color:#9e9488;white-space:nowrap;z-index:1;text-decoration:none}
+      .pill-item:hover{color:#e8a87c}
+      .pill-item.active{color:#e8a87c}
+      .pill-item .pi-label{display:none}
+      .pill-item .pi-icon{display:inline-flex;vertical-align:middle;font-size:1.25rem}
+      @media(min-width:768px){
+        .top-bar{height:4rem}
+        .pill-wrap{top:4.5rem}
+        .pill-item .pi-icon{display:none}
+        .pill-item .pi-label{display:inline}
+        .pill-item{padding:0.5rem 1.5rem}
+      }
+      @media(max-width:767px){
+        .pill-wrap{bottom:1.25rem}
+        .pill-item{padding:0.5rem 0.75rem}
+      }
+      .pill-lamp{position:absolute;top:0;bottom:0;border-radius:9999px;background:rgba(232,168,124,0.06);transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;z-index:0}
+      .pill-glow{position:absolute;top:-3px;left:50%;transform:translateX(-50%);width:32px;height:4px;background:#e8a87c;border-radius:9999px;filter:blur(6px);opacity:0.8;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none}
+      .pill-glow::before{content:'';position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:18px;height:3px;background:#e8a87c;border-radius:9999px;filter:blur(1px)}
+      .pill-glow::after{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:48px;height:10px;background:rgba(232,168,124,0.12);border-radius:100%;filter:blur(12px)}
+      
       .logo-icon{transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1)}
       .logo-icon:hover{filter:drop-shadow(0 0 12px rgba(232,168,124,0.4)) drop-shadow(0 0 40px rgba(232,168,124,0.15))}
       .btn-glow{transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1)}
@@ -62,53 +85,77 @@ const NutriUI = {
 
     const cp = this.config.currentPage;
     const items = [
-      { id:'home', label:'Home', href: cp==='home' ? '#' : this.p('index.html'), publicOnly:true },
-      { id:'dashboard', label:'Dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/'), auth:true },
-      { id:'log', label:'Log Meal', href: cp==='log' ? '#' : this.p('log/'), auth:true },
-      { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') },
-      { id:'contact', label:'Contact', href: cp==='contact' ? '#' : this.p('contact/'), publicOnly:true }
+      { id:'home', label:'Home', icon:'home', href: cp==='home' ? '#' : this.p('index.html'), publicOnly:true },
+      { id:'dashboard', label:'Dashboard', icon:'dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/'), auth:true },
+      { id:'log', label:'Log Meal', icon:'restaurant_menu', href: cp==='log' ? '#' : this.p('log/'), auth:true },
+      { id:'bmi', label:'BMI', icon:'monitor_weight', href: cp==='bmi' ? '#' : this.p('bmi/') },
+      { id:'contact', label:'Contact', icon:'mail', href: cp==='contact' ? '#' : this.p('contact/'), publicOnly:true }
     ];
-    const nav = items.map(i =>
-      `<a href="${i.href}" data-page="${i.id}" class="nav-link text-sm font-medium text-on-surface-variant hover:text-primary py-2 ${i.auth?'auth-gated hidden ':''}${i.publicOnly?'public-only ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary after:!w-0':''}">${i.label}</a>`
+
+    const navItems = items.map(i =>
+      `<a href="${i.href}" data-page="${i.id}" class="pill-item ${cp===i.id?'active':''} ${i.auth?'auth-gated hidden ':''}${i.publicOnly?'public-only ':''}">
+        <span class="pi-icon material-symbols-outlined">${i.icon}</span>
+        <span class="pi-label">${i.label}</span>
+      </a>`
     ).join('');
+
     const navM = items.map(i =>
       `<a href="${i.href}" class="text-lg font-medium text-on-surface-variant hover:text-primary transition-colors py-2 pl-3 ${i.auth?'auth-gated hidden ':''}${i.publicOnly?'public-only ':''}${cp===i.id?'text-primary font-semibold border-l-4 border-primary':''}">${i.label}</a>`
     ).join('');
 
-    const h = `<header class="fixed top-0 left-0 right-0 h-20 bg-surface-container/80 backdrop-blur-xl border-b border-outline-variant/20 z-50">
-      <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-        <a href="${cp==='home'?'#':this.p('index.html')}" class="flex items-center gap-2 group">
-          <span class="material-symbols-outlined logo-icon text-primary text-3xl group-hover:scale-110 group-hover:rotate-[8deg]">insights</span>
-          <span class="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent group-hover:brightness-110 transition-all duration-300">NutriAI</span>
-        </a>
-        <nav class="hidden md:flex items-center justify-center flex-1 gap-7">${nav}</nav>
-        <div class="hidden md:flex items-center gap-4">
-          <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="btn-glow bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-7 py-2.5 rounded-full font-semibold">Sign In</button>
-          <div id="userMenu" class="hidden relative">
-            <button onclick="NutriUI.toggleUserMenu(event)" class="avatar-ring w-11 h-11 rounded-full border-2 border-primary/60 overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
-            <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden z-50 shadow-xl">
-              <p id="userEmailDisplay" class="text-sm text-on-surface-variant px-3 py-2 truncate font-medium"></p>
-              <hr class="border-outline-variant/30 my-1"/>
-              <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm hover:bg-surface-container px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:translate-x-0.5 transition-all"><span class="material-symbols-outlined">settings</span> API Key</button>
-              <button onclick="NutriUI.signOut()" class="w-full text-left text-sm hover:bg-surface-container hover:text-error px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:translate-x-0.5 transition-all"><span class="material-symbols-outlined">logout</span> Sign Out</button>
+    const h = `
+      <header class="top-bar">
+        <div class="top-bar-inner">
+          <a href="${cp==='home'?'#':this.p('index.html')}" class="flex items-center gap-2 group">
+            <span class="material-symbols-outlined logo-icon text-primary text-2xl md:text-3xl group-hover:scale-110 group-hover:rotate-[8deg]">insights</span>
+            <span class="text-xl md:text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent group-hover:brightness-110 transition-all duration-300">NutriAI</span>
+          </a>
+          <div class="flex items-center gap-3">
+            <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="btn-glow bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 text-sm rounded-full font-semibold">Sign In</button>
+            <div id="userMenu" class="hidden md:block relative">
+              <button onclick="NutriUI.toggleUserMenu(event)" class="avatar-ring w-10 h-10 md:w-11 md:h-11 rounded-full border-2 border-primary/60 overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
+              <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden z-50 shadow-xl">
+                <p id="userEmailDisplay" class="text-sm text-on-surface-variant px-3 py-2 truncate font-medium"></p>
+                <hr class="border-outline-variant/30 my-1"/>
+                <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm hover:bg-surface-container px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:translate-x-0.5 transition-all"><span class="material-symbols-outlined">settings</span> API Key</button>
+                <button onclick="NutriUI.signOut()" class="w-full text-left text-sm hover:bg-surface-container hover:text-error px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:translate-x-0.5 transition-all"><span class="material-symbols-outlined">logout</span> Sign Out</button>
+              </div>
             </div>
+            <button onclick="NutriUI.toggleMobileMenu()" id="menuToggle" class="md:hidden text-on-surface hover:text-primary"><span id="menuIcon" class="material-symbols-outlined text-2xl">menu</span></button>
           </div>
         </div>
-        <div class="flex md:hidden items-center gap-3">
-          <button onclick="NutriUI.openAuthModal()" id="signInBtnMob" class="btn-glow bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold">Sign In</button>
-          <div id="userMenuMob" class="hidden"><button class="w-10 h-10 rounded-full border-2 border-primary/60 overflow-hidden"><img id="userAvatarMob" alt="" class="w-full h-full object-cover"></button></div>
-          <button onclick="NutriUI.toggleMobileMenu()" class="text-on-surface hover:text-primary"><span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span></button>
+        <div id="mobileMenu" class="hidden md:hidden absolute top-full left-0 right-0 bg-surface/95 backdrop-blur-xl border-b border-outline-variant/30 flex flex-col p-6 space-y-4 shadow-xl animate-fade-in">
+          ${navM}
+          <div id="mobileUserSection" class="hidden border-t border-outline-variant/20 pt-4 mt-2 space-y-2">
+            <p id="mobileUserEmail" class="text-xs text-on-surface-variant px-1 truncate"></p>
+            <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm font-medium text-on-surface-variant hover:text-primary py-2 pl-1 transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">settings</span> API Key Settings</button>
+            <button onclick="NutriUI.signOut()" class="w-full text-left text-sm font-medium text-error hover:text-error py-2 pl-1 transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">logout</span> Sign Out</button>
+          </div>
         </div>
-      </div>
-      <div id="mobileMenu" class="hidden md:hidden absolute top-20 left-0 right-0 bg-surface border-b border-outline-variant/50 flex flex-col p-6 space-y-4 shadow-xl z-40 animate-fade-in">${navM}
-        <div id="mobileUserSection" class="hidden border-t border-outline-variant/20 pt-4 mt-2 space-y-2">
-          <p id="mobileUserEmail" class="text-xs text-on-surface-variant px-1 truncate"></p>
-          <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm font-medium text-on-surface-variant hover:text-primary py-2 pl-1 transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">settings</span> API Key Settings</button>
-          <button onclick="NutriUI.signOut()" class="w-full text-left text-sm font-medium text-error hover:text-error py-2 pl-1 transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">logout</span> Sign Out</button>
+      </header>
+      <div class="pill-wrap" id="pillWrap">
+        <div class="pill-bar" id="pillBar">
+          <div class="pill-lamp" id="pillLamp"></div>
+          <div class="pill-glow" id="pillGlow"></div>
+          ${navItems}
         </div>
-      </div>
-    </header>`;
+      </div>`;
+
     document.body.insertAdjacentHTML('afterbegin', h);
+    requestAnimationFrame(() => this.positionLamp());
+  },
+
+  positionLamp() {
+    const lamp = document.getElementById('pillLamp');
+    const glow = document.getElementById('pillGlow');
+    const active = document.querySelector('.pill-item.active');
+    const bar = document.getElementById('pillBar');
+    if (!lamp || !glow || !active || !bar) return;
+    const br = bar.getBoundingClientRect();
+    const ar = active.getBoundingClientRect();
+    lamp.style.left = (ar.left - br.left) + 'px';
+    lamp.style.width = ar.width + 'px';
+    glow.style.left = (ar.left - br.left + ar.width/2) + 'px';
   },
 
   injectFooter() {
@@ -325,11 +372,8 @@ const NutriUI = {
 
   updateActiveNav() {
     const cp = this.config.currentPage;
-    document.querySelectorAll('[data-page]').forEach(el => {
-      if (el.dataset.page === cp) {
-        el.classList.add('text-primary', 'font-semibold', 'border-b-2', 'border-primary');
-        el.classList.remove('text-on-surface-variant');
-      }
+    document.querySelectorAll('.pill-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.page === cp);
     });
   },
 
