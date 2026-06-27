@@ -291,6 +291,7 @@ let _todayMeals = [];
 document.addEventListener('nutri-ready', async () => {
   await loadDashboard();
   await checkAndShowQuestionnaire();
+  if (typeof refreshAgent === 'function') refreshAgent();
 });
 document.addEventListener('nutri-apikey-changed', () => {
   if (typeof refreshAgent === 'function') refreshAgent();

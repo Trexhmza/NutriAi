@@ -46,6 +46,20 @@ const NutriUI = {
   },
 
   injectHeader() {
+    const s = document.createElement('style');
+    s.textContent = `
+      .nav-link{position:relative;transition:color 0.3s}
+      .nav-link::after{content:'';position:absolute;bottom:-1px;left:50%;width:0;height:2px;background:#e8a87c;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);transform:translateX(-50%);border-radius:2px;opacity:0}
+      .nav-link:hover::after{width:80%;opacity:1}
+      .logo-icon{transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1)}
+      .logo-icon:hover{filter:drop-shadow(0 0 12px rgba(232,168,124,0.4)) drop-shadow(0 0 40px rgba(232,168,124,0.15))}
+      .btn-glow{transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+      .btn-glow:hover{box-shadow:0 0 30px rgba(232,168,124,0.25);transform:translateY(-1.5px)}
+      .avatar-ring{transition:all 0.3s ease}
+      .avatar-ring:hover{box-shadow:0 0 0 3px rgba(232,168,124,0.15),0 0 20px rgba(232,168,124,0.15);border-color:#e8a87c}
+    `;
+    document.head.appendChild(s);
+
     const cp = this.config.currentPage;
     const items = [
       { id:'dashboard', label:'Dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/') },
@@ -53,7 +67,7 @@ const NutriUI = {
       { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') }
     ];
     const nav = items.map(i =>
-      `<a href="${i.href}" data-page="${i.id}" class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors py-2 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary':''}">${i.label}</a>`
+      `<a href="${i.href}" data-page="${i.id}" class="nav-link text-sm font-medium text-on-surface-variant hover:text-primary py-2 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary after:!w-0':''}">${i.label}</a>`
     ).join('');
     const navM = items.map(i =>
       `<a href="${i.href}" class="text-lg font-medium text-on-surface-variant hover:text-primary transition-colors py-2 pl-3 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-l-4 border-primary':''}">${i.label}</a>`
@@ -62,25 +76,25 @@ const NutriUI = {
     const h = `<header class="fixed top-0 left-0 right-0 h-20 bg-surface-container/80 backdrop-blur-xl border-b border-outline-variant/20 z-50">
       <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
         <a href="${cp==='home'?'#':this.p('index.html')}" class="flex items-center gap-2 group">
-          <span class="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">insights</span>
-          <span class="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent">NutriAI</span>
+          <span class="material-symbols-outlined logo-icon text-primary text-3xl group-hover:scale-110 group-hover:rotate-[8deg]">insights</span>
+          <span class="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent group-hover:brightness-110 transition-all duration-300">NutriAI</span>
         </a>
-        <nav class="hidden md:flex items-center justify-center flex-1 gap-6">${nav}</nav>
+        <nav class="hidden md:flex items-center justify-center flex-1 gap-7">${nav}</nav>
         <div class="hidden md:flex items-center gap-4">
-          <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-7 py-2.5 rounded-full font-semibold transition-all duration-300">Sign In</button>
+          <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="btn-glow bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-7 py-2.5 rounded-full font-semibold">Sign In</button>
           <div id="userMenu" class="hidden relative">
-            <button onclick="NutriUI.toggleUserMenu(event)" class="w-11 h-11 rounded-full border-2 border-primary overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer hover:border-primary-container transition-colors"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
+            <button onclick="NutriUI.toggleUserMenu(event)" class="avatar-ring w-11 h-11 rounded-full border-2 border-primary/60 overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
             <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden z-50 shadow-xl">
               <p id="userEmailDisplay" class="text-sm text-on-surface-variant px-3 py-2 truncate font-medium"></p>
               <hr class="border-outline-variant/30 my-1"/>
-              <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm hover:bg-surface-container px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined">settings</span> API Key</button>
-              <button onclick="NutriUI.signOut()" class="w-full text-left text-sm hover:bg-surface-container hover:text-error px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined">logout</span> Sign Out</button>
+              <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm hover:bg-surface-container px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:translate-x-0.5 transition-all"><span class="material-symbols-outlined">settings</span> API Key</button>
+              <button onclick="NutriUI.signOut()" class="w-full text-left text-sm hover:bg-surface-container hover:text-error px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:translate-x-0.5 transition-all"><span class="material-symbols-outlined">logout</span> Sign Out</button>
             </div>
           </div>
         </div>
         <div class="flex md:hidden items-center gap-3">
-          <button onclick="NutriUI.openAuthModal()" id="signInBtnMob" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold transition-all">Sign In</button>
-          <div id="userMenuMob" class="hidden"><button class="w-10 h-10 rounded-full border-2 border-primary overflow-hidden"><img id="userAvatarMob" alt="" class="w-full h-full object-cover"></button></div>
+          <button onclick="NutriUI.openAuthModal()" id="signInBtnMob" class="btn-glow bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold">Sign In</button>
+          <div id="userMenuMob" class="hidden"><button class="w-10 h-10 rounded-full border-2 border-primary/60 overflow-hidden"><img id="userAvatarMob" alt="" class="w-full h-full object-cover"></button></div>
           <button onclick="NutriUI.toggleMobileMenu()" class="text-on-surface hover:text-primary"><span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span></button>
         </div>
       </div>
