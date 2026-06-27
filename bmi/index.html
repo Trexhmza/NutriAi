@@ -143,41 +143,51 @@ function calcBMI() {
     : Math.round(10 * w + 6.25 * h - 5 * a - 161);
   document.getElementById('bmrDisplay').textContent = bmr.toLocaleString();
 
-  const minW = 18.5 * ((h/100)*(h/100));
-  const maxW = 24.9 * ((h/100)*(h/100));
+  let minBmi = 18.5, maxBmi = 24.9;
+  let ageNote = '';
+  if (a >= 65) {
+    minBmi = 22; maxBmi = 27;
+    ageNote = ' (age-adjusted for seniors)';
+  } else if (a >= 50) {
+    minBmi = 19; maxBmi = 25.5;
+    ageNote = ' (age-adjusted for 50+)';
+  }
+
+  const minW = minBmi * ((h/100)*(h/100));
+  const maxW = maxBmi * ((h/100)*(h/100));
   document.getElementById('rangeDisplay').textContent = `${minW.toFixed(1)} - ${maxW.toFixed(1)} kg`;
 
   let cat = 'Normal', cls = 'bg-secondary/15 text-secondary border-secondary/20';
   let feedback = '';
-  if (bmiVal < 18.5) {
+  if (bmiVal < minBmi) {
     cat='Underweight'; cls='bg-blue-400/15 text-blue-400 border-blue-400/20';
-    feedback = `Underweight for a ${a}-year-old ${_gender}. Consider gaining weight toward ${minW.toFixed(1)} kg.`;
-  } else if (bmiVal < 25) {
+    feedback = `Below the healthy range for a ${a}-year-old ${_gender}. Aim for at least ${minW.toFixed(1)} kg.`;
+  } else if (bmiVal <= maxBmi) {
     cat='Normal'; cls='bg-secondary/15 text-secondary border-secondary/20';
-    feedback = `Healthy range for a ${a}-year-old ${_gender}. Keep maintaining your balanced lifestyle.`;
+    feedback = `Healthy range for a ${a}-year-old ${_gender}${ageNote}. Keep maintaining your balanced lifestyle.`;
   } else if (bmiVal < 30) {
     cat='Overweight'; cls='bg-yellow-500/15 text-yellow-500 border-yellow-500/20';
-    feedback = a >= 65
-      ? `Slightly elevated BMI, which may be less concerning at your age. Aim for ${maxW.toFixed(1)} kg or below.`
-      : `Slightly above the healthy range. Aim for ${maxW.toFixed(1)} kg or below.`;
+    feedback = `Slightly above the healthy range${ageNote}. Aim for ${maxW.toFixed(1)} kg or below.`;
   } else {
     cat='Obese'; cls='bg-red-500/15 text-red-500 border-red-500/20';
-    feedback = `Well above the healthy range. Target ${minW.toFixed(1)}-${maxW.toFixed(1)} kg for your height.`;
+    feedback = `Well above the healthy range${ageNote}. Target ${minW.toFixed(1)}-${maxW.toFixed(1)} kg.`;
   }
 
   document.getElementById('bmiCat').textContent = cat;
   document.getElementById('bmiCat').className = `text-xs font-mono uppercase px-3 py-1 border rounded-full inline-block ${cls}`;
   document.getElementById('feedback').textContent = feedback ? `"${feedback}"` : '';
 
-  const uW = 16, ob = 35, full = ob - uW;
-  const pU = ((18.5-uW)/full)*100;
-  const pN = ((25-18.5)/full)*100;
-  const pO = ((30-25)/full)*100;
+  const uW = 14, ob = 36, full = ob - uW;
+  const lowNorm = a >= 65 ? 22 : (a >= 50 ? 19 : 18.5);
+  const highNorm = a >= 65 ? 27 : (a >= 50 ? 25.5 : 24.9);
+  const pU = ((lowNorm-uW)/full)*100;
+  const pN = ((highNorm-lowNorm)/full)*100;
+  const pO = ((30-highNorm)/full)*100;
   const pOb = Math.max(0, ((ob-30)/full)*100);
   document.getElementById('zUnder').style.width = `${pU.toFixed(1)}%`;
   document.getElementById('zNorm').style.width = `${pN.toFixed(1)}%`;
-  document.getElementById('zOver').style.width = `${pO.toFixed(1)}%`;
-  document.getElementById('zObese').style.width = `${pOb.toFixed(1)}%`;
+  document.getElementById('zOver').style.width = `${Math.max(0,pO).toFixed(1)}%`;
+  document.getElementById('zObese').style.width = `${Math.max(0,pOb).toFixed(1)}%`;
   document.getElementById('needle').style.left = `${Math.min(100, Math.max(0, ((bmiVal-uW)/full)*100))}%`;
 }
 
