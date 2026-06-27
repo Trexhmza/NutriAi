@@ -90,6 +90,11 @@ tailwind.config = {
           <p class="text-[10px] font-mono text-on-surface-variant uppercase">Healthy Weight Range</p>
           <p class="text-lg font-bold font-display mt-1 text-secondary" id="rangeDisplay">63.5 - 77.5 kg</p>
         </div>
+        <div class="w-full mt-3 bg-surface-container-lowest/40 p-4 rounded-xl border border-outline-variant/20">
+          <p class="text-[10px] font-mono text-on-surface-variant uppercase">Basal Metabolic Rate</p>
+          <p class="text-lg font-bold font-display mt-1 text-primary" id="bmrDisplay">1,650</p>
+          <p class="text-[9px] text-on-surface-variant mt-0.5">kcal/day — varies with age</p>
+        </div>
 
         <!-- Meter -->
         <div class="w-full mt-6 space-y-1.5">
@@ -132,6 +137,11 @@ function calcBMI() {
   const bmiVal = w / ((h/100)*(h/100));
   const bmi = bmiVal.toFixed(1);
   document.getElementById('bmiResult').textContent = bmi;
+
+  const bmr = _gender === 'male'
+    ? Math.round(10 * w + 6.25 * h - 5 * a + 5)
+    : Math.round(10 * w + 6.25 * h - 5 * a - 161);
+  document.getElementById('bmrDisplay').textContent = bmr.toLocaleString();
 
   const minW = 18.5 * ((h/100)*(h/100));
   const maxW = 24.9 * ((h/100)*(h/100));

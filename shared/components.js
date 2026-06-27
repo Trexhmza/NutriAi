@@ -192,8 +192,9 @@ const NutriUI = {
     const sm = document.getElementById('settingsModal');
     if (sm) { sm.classList.remove('hidden'); sm.classList.add('flex'); }
     const keyInput = document.getElementById('settingsApiKey');
-    if (keyInput && NutriAIAgent.config.apiKey) {
-      keyInput.value = NutriAIAgent.config.apiKey;
+    if (keyInput) {
+      keyInput.value = NutriAIAgent.config.apiKey || '';
+      keyInput.focus();
     }
   },
 

@@ -19,11 +19,12 @@ const NutriAIAgent = {
         const dbConfig = await NutriDB.getAgentConfig();
         if (dbConfig && dbConfig.api_key) {
           this.config.apiKey = dbConfig.api_key;
-          localStorage.setItem('nutriai_agent_config', JSON.stringify({ apiKey: dbConfig.api_key }));
         }
       } catch {}
     }
-    this.saveConfig();
+    if (this.config.apiKey) {
+      this.saveConfig();
+    }
   },
 
   saveConfig() {
