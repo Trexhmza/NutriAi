@@ -62,15 +62,17 @@ const NutriUI = {
 
     const cp = this.config.currentPage;
     const items = [
-      { id:'dashboard', label:'Dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/') },
+      { id:'home', label:'Home', href: cp==='home' ? '#' : this.p('index.html'), publicOnly:true },
+      { id:'dashboard', label:'Dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/'), auth:true },
       { id:'log', label:'Log Meal', href: cp==='log' ? '#' : this.p('log/'), auth:true },
-      { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') }
+      { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') },
+      { id:'contact', label:'Contact', href: cp==='contact' ? '#' : this.p('contact/'), publicOnly:true }
     ];
     const nav = items.map(i =>
-      `<a href="${i.href}" data-page="${i.id}" class="nav-link text-sm font-medium text-on-surface-variant hover:text-primary py-2 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary after:!w-0':''}">${i.label}</a>`
+      `<a href="${i.href}" data-page="${i.id}" class="nav-link text-sm font-medium text-on-surface-variant hover:text-primary py-2 ${i.auth?'auth-gated hidden ':''}${i.publicOnly?'public-only ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary after:!w-0':''}">${i.label}</a>`
     ).join('');
     const navM = items.map(i =>
-      `<a href="${i.href}" class="text-lg font-medium text-on-surface-variant hover:text-primary transition-colors py-2 pl-3 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-l-4 border-primary':''}">${i.label}</a>`
+      `<a href="${i.href}" class="text-lg font-medium text-on-surface-variant hover:text-primary transition-colors py-2 pl-3 ${i.auth?'auth-gated hidden ':''}${i.publicOnly?'public-only ':''}${cp===i.id?'text-primary font-semibold border-l-4 border-primary':''}">${i.label}</a>`
     ).join('');
 
     const h = `<header class="fixed top-0 left-0 right-0 h-20 bg-surface-container/80 backdrop-blur-xl border-b border-outline-variant/20 z-50">
@@ -300,6 +302,7 @@ const NutriUI = {
     const mu = document.getElementById('mobileUserSection');
     const mue = document.getElementById('mobileUserEmail');
     document.querySelectorAll('.auth-gated').forEach(el => el.classList.toggle('hidden', !user));
+    document.querySelectorAll('.public-only').forEach(el => el.classList.toggle('hidden', !!user));
     if (user) {
       if (sb) sb.classList.add('hidden');
       if (sm) sm.classList.add('hidden');
