@@ -67,21 +67,22 @@ const NutriUI = {
           <span class="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">insights</span>
           <span class="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent">NutriAI</span>
         </a>
-        <nav class="hidden md:flex items-center justify-center flex-1 gap-6">${nav}
-          <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ml-2">Sign In</button>
-          <div id="userMenu" class="hidden relative ml-2">
-            <button onclick="NutriUI.toggleUserMenu(event)" class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
+        <nav class="hidden md:flex items-center justify-center flex-1 gap-6">${nav}</nav>
+        <div class="hidden md:flex items-center gap-4">
+          <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-7 py-2.5 rounded-full font-semibold transition-all duration-300">Sign In</button>
+          <div id="userMenu" class="hidden relative">
+            <button onclick="NutriUI.toggleUserMenu(event)" class="w-11 h-11 rounded-full border-2 border-primary overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer hover:border-primary-container transition-colors"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
             <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden z-50 shadow-xl">
-              <p id="userEmailDisplay" class="text-xs text-on-surface-variant px-3 py-1 truncate"></p>
+              <p id="userEmailDisplay" class="text-sm text-on-surface-variant px-3 py-2 truncate font-medium"></p>
               <hr class="border-outline-variant/30 my-1"/>
-              <button onclick="NutriUI.openSettings()" class="w-full text-left text-xs hover:bg-surface-container px-3 py-2 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">settings</span> API Key</button>
-              <button onclick="NutriUI.signOut()" class="w-full text-left text-xs hover:bg-surface-container hover:text-error px-3 py-2 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">logout</span> Sign Out</button>
+              <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm hover:bg-surface-container px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined">settings</span> API Key</button>
+              <button onclick="NutriUI.signOut()" class="w-full text-left text-sm hover:bg-surface-container hover:text-error px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined">logout</span> Sign Out</button>
             </div>
           </div>
-        </nav>
+        </div>
         <div class="flex md:hidden items-center gap-3">
-          <button onclick="NutriUI.openAuthModal()" id="signInBtnMob" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-4 py-1.5 rounded-full text-xs font-semibold transition-all">Sign In</button>
-          <div id="userMenuMob" class="hidden"><button class="w-9 h-9 rounded-full border border-primary overflow-hidden"><img id="userAvatarMob" alt="" class="w-full h-full object-cover"></button></div>
+          <button onclick="NutriUI.openAuthModal()" id="signInBtnMob" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold transition-all">Sign In</button>
+          <div id="userMenuMob" class="hidden"><button class="w-10 h-10 rounded-full border-2 border-primary overflow-hidden"><img id="userAvatarMob" alt="" class="w-full h-full object-cover"></button></div>
           <button onclick="NutriUI.toggleMobileMenu()" class="text-on-surface hover:text-primary"><span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span></button>
         </div>
       </div>
