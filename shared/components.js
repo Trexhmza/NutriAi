@@ -18,7 +18,6 @@ const NutriUI = {
     const p = window.location.pathname.replace(/\/+$/, '');
     if (p.endsWith('/dashboard')) this.config.currentPage = 'dashboard';
     else if (p.endsWith('/log')) this.config.currentPage = 'log';
-    else if (p.endsWith('/weight')) this.config.currentPage = 'weight';
     else if (p.endsWith('/bmi')) this.config.currentPage = 'bmi';
     else if (p.endsWith('/contact')) this.config.currentPage = 'contact';
     else this.config.currentPage = 'home';
@@ -49,10 +48,9 @@ const NutriUI = {
   injectHeader() {
     const cp = this.config.currentPage;
     const items = [
-      { id:'home', label:'Home', href: cp==='home' ? '#' : this.p('index.html') },
+      { id:'dashboard', label:'Dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/') },
       { id:'log', label:'Log Meal', href: cp==='log' ? '#' : this.p('log/'), auth:true },
-      { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') },
-      { id:'weight', label:'Weight', href: cp==='weight' ? '#' : this.p('weight/'), auth:true }
+      { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') }
     ];
     const nav = items.map(i =>
       `<a href="${i.href}" data-page="${i.id}" class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors py-2 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary':''}">${i.label}</a>`
