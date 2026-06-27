@@ -50,11 +50,9 @@ const NutriUI = {
     const cp = this.config.currentPage;
     const items = [
       { id:'home', label:'Home', href: cp==='home' ? '#' : this.p('index.html') },
-      { id:'dashboard', label:'Dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/'), auth:true },
       { id:'log', label:'Log Meal', href: cp==='log' ? '#' : this.p('log/'), auth:true },
       { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') },
-      { id:'weight', label:'Weight', href: cp==='weight' ? '#' : this.p('weight/'), auth:true },
-      { id:'contact', label:'Contact', href: cp==='contact' ? '#' : this.p('contact/') }
+      { id:'weight', label:'Weight', href: cp==='weight' ? '#' : this.p('weight/'), auth:true }
     ];
     const nav = items.map(i =>
       `<a href="${i.href}" data-page="${i.id}" class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors py-2 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary':''}">${i.label}</a>`
@@ -69,7 +67,7 @@ const NutriUI = {
           <span class="material-symbols-outlined text-primary text-3xl group-hover:scale-110 transition-transform">insights</span>
           <span class="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary to-primary-container bg-clip-text text-transparent">NutriAI</span>
         </a>
-        <nav class="hidden md:flex items-center gap-6">${nav}
+        <nav class="hidden md:flex items-center justify-center flex-1 gap-6">${nav}
           <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ml-2">Sign In</button>
           <div id="userMenu" class="hidden relative ml-2">
             <button onclick="NutriUI.toggleUserMenu(event)" class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
