@@ -55,7 +55,7 @@ tailwind.config = {
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <!-- Chart Area -->
-      <div class="lg:col-span-8 space-y-6">
+      <div class="lg:col-span-8 space-y-6" id="chartSection">
         <!-- Stats Cards -->
         <div class="grid grid-cols-3 gap-4">
           <div class="bg-surface-container-low border border-outline-variant p-4 rounded-xl"><h4 class="text-[10px] font-mono text-on-surface-variant uppercase">Starting</h4><p class="text-xl font-bold font-display mt-1 text-on-surface" id="startW">--</p></div>
@@ -127,7 +127,13 @@ function renderAll() {
   _weights.sort((a,b) => new Date(a.date)-new Date(b.date));
   const container = document.getElementById('weightLogs');
   container.innerHTML = '';
-  if (!_weights.length) { container.innerHTML = '<p class="text-xs text-on-surface-variant text-center py-4">No entries yet.</p>'; return; }
+  const chartSection = document.getElementById('chartSection');
+  if (!_weights.length) {
+    container.innerHTML = '<p class="text-xs text-on-surface-variant text-center py-4">No entries yet.</p>';
+    if (chartSection) chartSection.classList.add('hidden');
+    return;
+  }
+  if (chartSection) chartSection.classList.remove('hidden');
 
   const start = _weights[0].weight;
   const current = _weights[_weights.length-1].weight;

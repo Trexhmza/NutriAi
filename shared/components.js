@@ -10,6 +10,7 @@ const NutriUI = {
     this.injectHeader();
     this.injectAuthModal();
     this.injectFooter();
+    this.injectSettingsModal();
     document.addEventListener('DOMContentLoaded', () => this.onReady());
   },
 
@@ -35,10 +36,13 @@ const NutriUI = {
       const user = await this.getUser();
       if (!user) { window.location.href = this.p('index.html'); return; }
     }
-    if (this.config.currentPage === 'home') {
-      const user = await this.getUser();
-      if (user) { window.location.href = './dashboard/'; return; }
-    }
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('userDropdown');
+      const menu = document.getElementById('userMenu');
+      if (dd && menu && !menu.contains(e.target) && !dd.classList.contains('hidden')) {
+        dd.classList.add('hidden');
+      }
+    });
     document.dispatchEvent(new Event('nutri-ready'));
   },
 
@@ -46,11 +50,11 @@ const NutriUI = {
     const cp = this.config.currentPage;
     const items = [
       { id:'home', label:'Home', href: cp==='home' ? '#' : this.p('index.html') },
-      { id:'dashboard', label:'Dashboard', href: this.p('dashboard/'), auth:true },
-      { id:'log', label:'Log Meal', href: this.p('log/'), auth:true },
-      { id:'bmi', label:'BMI', href: this.p('bmi/') },
-      { id:'weight', label:'Weight', href: this.p('weight/'), auth:true },
-      { id:'contact', label:'Contact', href: this.p('contact/') }
+      { id:'dashboard', label:'Dashboard', href: cp==='dashboard' ? '#' : this.p('dashboard/'), auth:true },
+      { id:'log', label:'Log Meal', href: cp==='log' ? '#' : this.p('log/'), auth:true },
+      { id:'bmi', label:'BMI', href: cp==='bmi' ? '#' : this.p('bmi/') },
+      { id:'weight', label:'Weight', href: cp==='weight' ? '#' : this.p('weight/'), auth:true },
+      { id:'contact', label:'Contact', href: cp==='contact' ? '#' : this.p('contact/') }
     ];
     const nav = items.map(i =>
       `<a href="${i.href}" data-page="${i.id}" class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors py-2 ${i.auth?'auth-gated hidden ':''}${cp===i.id?'text-primary font-semibold border-b-2 border-primary':''}">${i.label}</a>`
@@ -68,10 +72,11 @@ const NutriUI = {
         <nav class="hidden md:flex items-center gap-6">${nav}
           <button onclick="NutriUI.openAuthModal()" id="signInBtn" class="bg-primary/15 border border-primary/40 hover:bg-primary hover:text-on-primary text-primary px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ml-2">Sign In</button>
           <div id="userMenu" class="hidden relative ml-2">
-            <button class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
-            <div class="absolute right-0 mt-2 w-48 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden group-hover:block z-50">
+            <button onclick="NutriUI.toggleUserMenu(event)" class="w-10 h-10 rounded-full border border-primary overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
+            <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden z-50 shadow-xl">
               <p id="userEmailDisplay" class="text-xs text-on-surface-variant px-3 py-1 truncate"></p>
               <hr class="border-outline-variant/30 my-1"/>
+              <button onclick="NutriUI.openSettings()" class="w-full text-left text-xs hover:bg-surface-container px-3 py-2 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">settings</span> API Key</button>
               <button onclick="NutriUI.signOut()" class="w-full text-left text-xs hover:bg-surface-container hover:text-error px-3 py-2 rounded-lg transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">logout</span> Sign Out</button>
             </div>
           </div>
@@ -82,7 +87,13 @@ const NutriUI = {
           <button onclick="NutriUI.toggleMobileMenu()" class="text-on-surface hover:text-primary"><span id="menuIcon" class="material-symbols-outlined text-3xl">menu</span></button>
         </div>
       </div>
-      <div id="mobileMenu" class="hidden md:hidden absolute top-20 left-0 right-0 bg-surface border-b border-outline-variant/50 flex flex-col p-6 space-y-4 shadow-xl z-40 animate-fade-in">${navM}</div>
+      <div id="mobileMenu" class="hidden md:hidden absolute top-20 left-0 right-0 bg-surface border-b border-outline-variant/50 flex flex-col p-6 space-y-4 shadow-xl z-40 animate-fade-in">${navM}
+        <div id="mobileUserSection" class="hidden border-t border-outline-variant/20 pt-4 mt-2 space-y-2">
+          <p id="mobileUserEmail" class="text-xs text-on-surface-variant px-1 truncate"></p>
+          <button onclick="NutriUI.openSettings()" class="w-full text-left text-sm font-medium text-on-surface-variant hover:text-primary py-2 pl-1 transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">settings</span> API Key Settings</button>
+          <button onclick="NutriUI.signOut()" class="w-full text-left text-sm font-medium text-error hover:text-error py-2 pl-1 transition-colors flex items-center gap-2"><span class="material-symbols-outlined text-sm">logout</span> Sign Out</button>
+        </div>
+      </div>
     </header>`;
     document.body.insertAdjacentHTML('afterbegin', h);
   },
@@ -170,6 +181,60 @@ const NutriUI = {
     }
   },
 
+  toggleUserMenu(event) {
+    if (event) event.stopPropagation();
+    const dd = document.getElementById('userDropdown');
+    if (dd) dd.classList.toggle('hidden');
+  },
+
+  openSettings() {
+    const dd = document.getElementById('userDropdown');
+    if (dd) dd.classList.add('hidden');
+    const sm = document.getElementById('settingsModal');
+    if (sm) { sm.classList.remove('hidden'); sm.classList.add('flex'); }
+    const keyInput = document.getElementById('settingsApiKey');
+    if (keyInput && NutriAIAgent.config.apiKey) {
+      keyInput.value = NutriAIAgent.config.apiKey;
+    }
+  },
+
+  closeSettings() {
+    const m = document.getElementById('settingsModal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+  },
+
+  async handleSettingsSubmit(event) {
+    event.preventDefault();
+    const key = document.getElementById('settingsApiKey').value.trim();
+    if (!key) return;
+    try {
+      await NutriAIAgent.setApiKey(key);
+      this.closeSettings();
+      document.dispatchEvent(new Event('nutri-apikey-changed'));
+    } catch (err) {
+      alert('Error saving key: ' + err.message);
+    }
+  },
+
+  injectSettingsModal() {
+    const m = `<div id="settingsModal" class="fixed inset-0 bg-background/80 backdrop-blur-md hidden items-center justify-center z-[60] p-4">
+      <div class="bg-surface-container border border-outline-variant w-full max-w-md rounded-2xl p-8 relative shadow-2xl">
+        <button onclick="NutriUI.closeSettings()" class="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined">close</span></button>
+        <div class="text-center mb-6">
+          <span class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-4"><span class="material-symbols-outlined text-3xl">key</span></span>
+          <h2 class="text-2xl font-bold font-display text-on-surface mb-2">API Key</h2>
+          <p class="text-sm text-on-surface-variant">Your Groq API key enables AI analysis &amp; calorie estimation. Saved to your account.</p>
+        </div>
+        <form onsubmit="NutriUI.handleSettingsSubmit(event)" class="space-y-4">
+          <div><label class="block text-xs font-mono uppercase text-on-surface-variant mb-1">Groq API Key</label><input type="password" id="settingsApiKey" required class="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40" placeholder="gsk_..."></div>
+          <p class="text-xs text-on-surface-variant">Get your free key at <a href="https://console.groq.com/keys" target="_blank" class="text-primary underline">console.groq.com</a></p>
+          <button type="submit" id="settingsSaveBtn" class="w-full py-3 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-lg transition-all duration-300">Save</button>
+        </form>
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', m);
+  },
+
   async handleAuthSubmit(event) {
     event.preventDefault();
     if (this._authLoading) return;
@@ -220,6 +285,8 @@ const NutriUI = {
     const ue = document.getElementById('userEmailDisplay');
     const ua = document.getElementById('userAvatar');
     const uam = document.getElementById('userAvatarMob');
+    const mu = document.getElementById('mobileUserSection');
+    const mue = document.getElementById('mobileUserEmail');
     document.querySelectorAll('.auth-gated').forEach(el => el.classList.toggle('hidden', !user));
     if (user) {
       if (sb) sb.classList.add('hidden');
@@ -227,6 +294,8 @@ const NutriUI = {
       if (um) { um.classList.remove('hidden'); um.classList.add('block'); }
       if (umm) { umm.classList.remove('hidden'); umm.classList.add('block'); }
       if (ue) ue.textContent = user.email;
+      if (mue) mue.textContent = user.email;
+      if (mu) { mu.classList.remove('hidden'); mu.classList.add('block'); }
       const src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=d4834a&color=12120f`;
       if (ua) ua.src = src;
       if (uam) uam.src = src;
@@ -235,6 +304,7 @@ const NutriUI = {
       if (sm) sm.classList.remove('hidden');
       if (um) { um.classList.remove('block'); um.classList.add('hidden'); }
       if (umm) { umm.classList.remove('block'); umm.classList.add('hidden'); }
+      if (mu) { mu.classList.remove('block'); mu.classList.add('hidden'); }
     }
   },
 

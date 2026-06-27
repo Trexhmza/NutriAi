@@ -1,0 +1,1 @@
+window.NUTRIAI_GROQ_KEY = 'your-groq-api-key-here';

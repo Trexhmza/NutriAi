@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../supabase/db.js"></script>
+<script src="../agent/config.js"></script>
 <script src="../agent/agent.js"></script>
 <script src="../shared/components.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
@@ -211,6 +212,11 @@ tailwind.config = {
           <p class="text-sm text-on-surface-variant mt-2">Complete your profile to unlock AI analysis.</p>
           <button onclick="NutriUI.openQuestionnaire()" class="mt-4 px-6 py-2.5 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-full transition-all">Set Up Profile</button>
         </div>
+        <div id="agentNoKey" class="hidden text-center py-8">
+          <span class="material-symbols-outlined text-3xl text-on-surface-variant/30">key_off</span>
+          <p class="text-sm text-on-surface-variant mt-2">No Groq API key configured.</p>
+          <button onclick="NutriUI.openSettings()" class="mt-4 px-6 py-2.5 bg-primary text-on-primary hover:brightness-110 text-sm font-semibold rounded-full transition-all">Add API Key</button>
+        </div>
       </div>
     </div>
 
@@ -285,6 +291,9 @@ let _todayMeals = [];
 document.addEventListener('nutri-ready', async () => {
   await loadDashboard();
   await checkAndShowQuestionnaire();
+});
+document.addEventListener('nutri-apikey-changed', () => {
+  if (typeof refreshAgent === 'function') refreshAgent();
 });
 
 async function loadDashboard() {
@@ -501,13 +510,16 @@ async function refreshAgent() {
   const textEl = document.getElementById('agentText');
   const quoteEl = document.getElementById('agentQuote');
   const setup = document.getElementById('agentSetup');
+  const noKey = document.getElementById('agentNoKey');
   loading.classList.remove('hidden');
   content.classList.add('hidden');
   setup.classList.add('hidden');
+  noKey.classList.add('hidden');
   await new Promise(r => setTimeout(r, 200));
   try {
     const user = await NutriUI.getUser();
     if (!user) { loading.classList.add('hidden'); setup.classList.remove('hidden'); return; }
+    if (!NutriAIAgent.config.apiKey) { loading.classList.add('hidden'); noKey.classList.remove('hidden'); return; }
     const goals = await NutriDB.getUserGoals().catch(() => null);
     const meals = await NutriDB.getTodayMeals().catch(() => []);
     if (!goals || !goals.goalCalories) { loading.classList.add('hidden'); setup.classList.remove('hidden'); return; }

@@ -1,22 +1,44 @@
-const NUTRIAI_GROQ_KEY = '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';
-
 const NutriAIAgent = {
   config: {
-    apiKey: NUTRIAI_GROQ_KEY
+    apiKey: null
   },
 
-  init() {
+  async init() {
+    if (window.NUTRIAI_GROQ_KEY) {
+      this.config.apiKey = window.NUTRIAI_GROQ_KEY;
+    }
     const saved = localStorage.getItem('nutriai_agent_config');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      this.config.apiKey = parsed.apiKey || NUTRIAI_GROQ_KEY;
-    } else {
-      this.saveConfig();
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.apiKey) this.config.apiKey = parsed.apiKey;
+      } catch {}
     }
+    if (!this.config.apiKey) {
+      try {
+        const dbConfig = await NutriDB.getAgentConfig();
+        if (dbConfig && dbConfig.api_key) {
+          this.config.apiKey = dbConfig.api_key;
+          localStorage.setItem('nutriai_agent_config', JSON.stringify({ apiKey: dbConfig.api_key }));
+        }
+      } catch {}
+    }
+    this.saveConfig();
   },
 
   saveConfig() {
     localStorage.setItem('nutriai_agent_config', JSON.stringify(this.config));
+  },
+
+  async setApiKey(key) {
+    this.config.apiKey = key;
+    this.saveConfig();
+    try {
+      const user = await NutriDB.getUser();
+      if (user) {
+        await NutriDB.saveAgentConfig({ apiKey: key, llmProvider: 'groq', llmModel: 'llama-3.3-70b-versatile' });
+      }
+    } catch {}
   },
 
   async generateAnalysis(goals, todayMeals, weights) {
@@ -243,4 +265,4 @@ Rules:
   }
 };
 
-NutriAIAgent.init();
+NutriAIAgent.init().catch(() => {});
