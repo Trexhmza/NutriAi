@@ -333,12 +333,14 @@ const NutriUI = {
       if (sb) sb.classList.add('hidden');
       if (mue) mue.textContent = user.email;
       if (mu) { mu.classList.remove('hidden'); mu.classList.add('block'); }
-      if (!document.getElementById('userMenu')) {
-        const wrapper = document.createElement('div');
-        wrapper.id = 'userMenu';
-        wrapper.className = 'block relative';
-        wrapper.innerHTML = `
-          <button onclick="NutriUI.toggleUserMenu(event)" class="w-10 h-10 md:w-11 md:h-11 rounded-full border-2 border-primary/60 overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer hover:shadow-[0_0_0_3px_rgba(232,168,124,0.15),0_0_20px_rgba(232,168,124,0.15)] hover:border-primary transition-all"><img id="userAvatar" alt="" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=d4834a&color=12120f"></button>
+      const avatarUrl = user.user_metadata?.avatar_url || user.identities?.[0]?.identity_data?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=d4834a&color=12120f`;
+      let um = document.getElementById('userMenu');
+      if (!um) {
+        um = document.createElement('div');
+        um.id = 'userMenu';
+        um.className = 'block relative';
+        um.innerHTML = `
+          <button onclick="NutriUI.toggleUserMenu(event)" class="w-10 h-10 md:w-11 md:h-11 rounded-full border-2 border-primary/60 overflow-hidden flex items-center justify-center bg-surface-container cursor-pointer hover:shadow-[0_0_0_3px_rgba(232,168,124,0.15),0_0_20px_rgba(232,168,124,0.15)] hover:border-primary transition-all"><img id="userAvatar" alt="" class="w-full h-full object-cover"></button>
           <div id="userDropdown" class="absolute right-0 mt-2 w-56 bg-surface-container-low border border-outline-variant rounded-xl p-2 hidden z-50 shadow-xl">
             <p id="userEmailDisplay" class="text-sm text-on-surface-variant px-3 py-2 truncate font-medium">${user.email}</p>
             <hr class="border-outline-variant/30 my-1"/>
@@ -346,8 +348,10 @@ const NutriUI = {
             <button onclick="NutriUI.signOut()" class="w-full text-left text-sm hover:bg-surface-container hover:text-error px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 hover:translate-x-0.5 transition-all"><span class="material-symbols-outlined">logout</span> Sign Out</button>
           </div>`;
         const mt = document.getElementById('menuToggle');
-        if (mt) mt.parentNode.insertBefore(wrapper, mt);
+        if (mt) mt.parentNode.insertBefore(um, mt);
       }
+      const ua = document.getElementById('userAvatar');
+      if (ua) ua.src = avatarUrl;
     } else {
       if (sb) sb.classList.remove('hidden');
       if (mu) { mu.classList.remove('block'); mu.classList.add('hidden'); }

@@ -195,8 +195,8 @@ tailwind.config = {
               <p class="text-xs text-on-surface-variant">Personalized nutrition insight</p>
             </div>
           </div>
-          <button onclick="refreshAgent()" class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded" title="Refresh">
-            <span class="material-symbols-outlined text-lg">refresh</span>
+          <button onclick="refreshAgent()" id="refreshBtn" class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded" title="Refresh">
+            <span id="refreshIcon" class="material-symbols-outlined text-lg">refresh</span>
           </button>
         </div>
         <div id="agentLoading" class="text-center py-8">
@@ -291,7 +291,7 @@ let _todayMeals = [];
 document.addEventListener('nutri-ready', async () => {
   await loadDashboard();
   await checkAndShowQuestionnaire();
-  if (typeof refreshAgent === 'function') refreshAgent();
+  if (typeof refreshAgent === 'function') await refreshAgent();
 });
 document.addEventListener('nutri-apikey-changed', () => {
   if (typeof refreshAgent === 'function') refreshAgent();
@@ -506,6 +506,8 @@ function escapeHtml(str) {
 
 // ── Agent ──
 async function refreshAgent() {
+  const icon = document.getElementById('refreshIcon');
+  if (icon) icon.classList.add('animate-spin');
   const loading = document.getElementById('agentLoading');
   const content = document.getElementById('agentContent');
   const textEl = document.getElementById('agentText');
@@ -535,6 +537,7 @@ async function refreshAgent() {
     content.classList.remove('hidden');
     textEl.innerHTML = `<span class="text-error">Analysis error: ${err.message}</span>`;
   }
+  if (icon) icon.classList.remove('animate-spin');
 }
 
 // ── Confetti ──
