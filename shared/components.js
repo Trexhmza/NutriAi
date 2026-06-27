@@ -333,7 +333,7 @@ const NutriUI = {
       if (sb) sb.classList.add('hidden');
       if (mue) mue.textContent = user.email;
       if (mu) { mu.classList.remove('hidden'); mu.classList.add('block'); }
-      const avatarUrl = 'shared/avatar.jpg';
+      const avatarUrl = 'shared/avatar.svg';
       let um = document.getElementById('userMenu');
       if (!um) {
         um = document.createElement('div');
